@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'" />
+    <title>Мои проекты</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="workspace">
+      <section class="panel">
+        <header><p class="eyebrow">МОИ ПРОЕКТЫ</p><h1>Проекты</h1></header>
+        <form id="project-form" class="add-form">
+          <input id="project-input" aria-label="Название нового проекта" placeholder="Новый проект" autocomplete="off" />
+          <button class="primary square" type="submit" aria-label="Добавить проект">+</button>
+        </form>
+        <div id="project-list" class="list" role="listbox" aria-label="Проекты"></div>
+        <button id="delete-project" class="danger" type="button">Удалить проект</button>
+      </section>
+
+      <section class="panel">
+        <header><p class="eyebrow">ЗАДАЧИ</p><h2 id="project-title">Выберите проект</h2></header>
+        <form id="task-form" class="add-form">
+          <input id="task-input" aria-label="Название новой задачи" placeholder="Новая задача" autocomplete="off" disabled />
+          <button id="add-task" class="primary" type="submit" disabled>Добавить</button>
+        </form>
+        <div id="task-list" class="list task-list" role="listbox" aria-label="Задачи"></div>
+        <div class="empty-state">Выберите проект и добавьте первую задачу</div>
+      </section>
+
+      <section class="panel">
+        <header><p class="eyebrow">ДЕТАЛИ ЗАДАЧИ</p></header>
+        <div id="details-empty" class="empty-state details-empty">Выберите задачу, чтобы открыть её детали</div>
+        <div id="details" class="details" hidden>
+          <label for="task-title">Название</label>
+          <input id="task-title" class="large-input" autocomplete="off" />
+          <label class="check-row"><input id="task-completed" type="checkbox" /><span>Задача выполнена</span></label>
+          <label for="task-comment">Комментарий</label>
+          <textarea id="task-comment" placeholder="Необязательный комментарий к задаче"></textarea>
+          <p id="save-status" class="save-status">Изменения сохраняются автоматически</p>
+          <button id="delete-task" class="danger" type="button">Удалить задачу</button>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="confirm-dialog">
+      <form method="dialog">
+        <h3 id="confirm-title">Подтвердите удаление</h3>
+        <p id="confirm-message"></p>
+        <div class="dialog-actions">
+          <button value="cancel" class="secondary">Отмена</button>
+          <button value="confirm" class="danger">Удалить</button>
+        </div>
+      </form>
+    </dialog>
+    <script type="module" src="renderer.js"></script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "project-tasks",
+  "version": "0.1.0",
+  "description": "Кроссплатформенный менеджер проектов и задач",
+  "main": "electron/main.js",
+  "scripts": { "start": "electron .", "test": "node --test" },
+  "devDependencies": { "electron": "44.2.0" },
+  "engines": { "node": ">=22" },
+  "private": true,
+  "type": "module"
+}
