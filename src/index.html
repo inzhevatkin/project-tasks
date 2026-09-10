@@ -10,7 +10,12 @@
   <body>
     <main class="workspace">
       <section class="panel">
-        <header><p class="eyebrow">МОИ ПРОЕКТЫ</p><h1>Проекты</h1></header>
+        <header class="panel-header">
+          <div><p class="eyebrow">МОИ ПРОЕКТЫ</p><h1>Проекты</h1></div>
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Включить тёмную тему" title="Включить тёмную тему">
+            <span aria-hidden="true">🌙</span>
+          </button>
+        </header>
         <form id="project-form" class="add-form">
           <input id="project-input" aria-label="Название нового проекта" placeholder="Новый проект" autocomplete="off" />
           <button class="primary square" type="submit" aria-label="Добавить проект">+</button>

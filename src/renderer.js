@@ -19,13 +19,29 @@ const elements = {
   saveStatus: document.querySelector("#save-status"),
   confirmDialog: document.querySelector("#confirm-dialog"),
   confirmTitle: document.querySelector("#confirm-title"),
-  confirmMessage: document.querySelector("#confirm-message")
+  confirmMessage: document.querySelector("#confirm-message"),
+  themeToggle: document.querySelector("#theme-toggle")
 };
 
 const state = { projects: [], selectedProjectId: null, selectedTaskId: null, saveTimer: null };
 
 const selectedProject = () => state.projects.find((project) => project.id === state.selectedProjectId) ?? null;
 const selectedTask = () => selectedProject()?.tasks.find((task) => task.id === state.selectedTaskId) ?? null;
+
+function applyTheme(theme) {
+  const isDark = theme === "dark";
+  document.documentElement.dataset.theme = theme;
+  elements.themeToggle.querySelector("span").textContent = isDark ? "☀️" : "🌙";
+  const label = isDark ? "Включить светлую тему" : "Включить тёмную тему";
+  elements.themeToggle.setAttribute("aria-label", label);
+  elements.themeToggle.title = label;
+}
+
+function initialTheme() {
+  const saved = localStorage.getItem("projectTasks.theme");
+  if (saved === "dark" || saved === "light") return saved;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
 
 function textSpan(text, className) {
   const span = document.createElement("span");
@@ -212,7 +228,14 @@ elements.deleteTask.addEventListener("click", async () => {
   scheduleSave();
 });
 
+elements.themeToggle.addEventListener("click", () => {
+  const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  localStorage.setItem("projectTasks.theme", nextTheme);
+  applyTheme(nextTheme);
+});
+
 async function initialize() {
+  applyTheme(initialTheme());
   state.projects = normalizeProjects(await window.projectTasks.load());
   state.selectedProjectId = state.projects[0]?.id ?? null;
   state.selectedTaskId = state.projects[0]?.tasks[0]?.id ?? null;
