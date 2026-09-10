@@ -1,5 +1,5 @@
 import { createProject, createProjectType, createTask, normalizeWorkspace } from "./models.js";
-import { POMODORO_PHASES, durationFor, formatTime, nextPomodoroPhase, skippedPomodoroPhase } from "./pomodoro.js";
+import { POMODORO_PHASES, durationFor, formatTime, nextPomodoroPhase, shouldAutoStartAfter, skippedPomodoroPhase } from "./pomodoro.js";
 
 const elements = {
   typeForm: document.querySelector("#type-form"),
@@ -41,6 +41,7 @@ const state = {
 const POMODORO_STORAGE_KEY = "projectTasks.pomodoro";
 let pomodoro = restorePomodoro();
 let pomodoroInterval = null;
+let audioContext = null;
 
 const selectedType = () => state.projectTypes.find((type) => type.id === state.selectedTypeId) ?? null;
 const projectsForSelectedType = () => state.projects.filter((project) => project.typeId === state.selectedTypeId);
@@ -78,7 +79,12 @@ function restorePomodoro() {
         return { phase: saved.phase, secondsRemaining: remaining, completedFocusSessions: completed, running: true, deadline: saved.deadline };
       }
       const next = nextPomodoroPhase(saved.phase, completed);
-      return { ...next, secondsRemaining: durationFor(next.phase), running: false, deadline: null };
+      const running = shouldAutoStartAfter(saved.phase);
+      const secondsRemaining = durationFor(next.phase);
+      return {
+        ...next, secondsRemaining, running,
+        deadline: running ? Date.now() + secondsRemaining * 1000 : null
+      };
     }
     const maximum = durationFor(saved.phase);
     const remaining = Number.isFinite(saved.secondsRemaining)
@@ -129,30 +135,57 @@ function updatePomodoro() {
 }
 
 function finishPomodoro() {
+  const completedPhase = pomodoro.phase;
   const next = nextPomodoroPhase(pomodoro.phase, pomodoro.completedFocusSessions);
-  pomodoro = { ...next, secondsRemaining: durationFor(next.phase), running: false, deadline: null };
+  const running = shouldAutoStartAfter(completedPhase);
+  const secondsRemaining = durationFor(next.phase);
+  pomodoro = {
+    ...next, secondsRemaining, running,
+    deadline: running ? Date.now() + secondsRemaining * 1000 : null
+  };
   startPomodoroInterval();
   persistPomodoro();
   renderPomodoro();
-  playTimerChime();
+  playTimerChime(completedPhase);
 }
 
-function playTimerChime() {
+function prepareAudio() {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    const context = new AudioContext();
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.frequency.value = 740;
-    gain.gain.setValueAtTime(0.18, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.7);
-    oscillator.connect(gain).connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + 0.7);
-    oscillator.addEventListener("ended", () => context.close());
+    audioContext ??= new AudioContext();
+    if (audioContext.state === "suspended") audioContext.resume();
   } catch (error) {
-    console.warn("Не удалось воспроизвести сигнал таймера", error);
+    console.warn("Не удалось подготовить звуковой сигнал таймера", error);
   }
+}
+
+function playTimerChime(completedPhase) {
+  prepareAudio();
+  if (!audioContext) return;
+  const strikes = completedPhase === "focus"
+    ? [{ frequency: 880, delay: 0 }, { frequency: 1175, delay: 0.34 }]
+    : [{ frequency: 660, delay: 0 }, { frequency: 523, delay: 0.42 }];
+  strikes.forEach(({ frequency, delay }) => strikeBell(frequency, audioContext.currentTime + delay));
+}
+
+function strikeBell(baseFrequency, start) {
+  const partials = [
+    { ratio: 1, level: 0.11, decay: 1.8 },
+    { ratio: 2.01, level: 0.05, decay: 1.35 },
+    { ratio: 3.9, level: 0.025, decay: 0.9 },
+    { ratio: 5.4, level: 0.012, decay: 0.65 }
+  ];
+  partials.forEach(({ ratio, level, decay }) => {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.value = baseFrequency * ratio;
+    gain.gain.setValueAtTime(level, start);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + decay);
+    oscillator.connect(gain).connect(audioContext.destination);
+    oscillator.start(start);
+    oscillator.stop(start + decay);
+  });
 }
 
 function textSpan(text, className) {
@@ -394,6 +427,7 @@ elements.pomodoroToggle.addEventListener("click", () => {
     pomodoro.running = false;
     pomodoro.deadline = null;
   } else {
+    prepareAudio();
     pomodoro.running = true;
     pomodoro.deadline = Date.now() + pomodoro.secondsRemaining * 1000;
   }

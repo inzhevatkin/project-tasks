@@ -25,6 +25,10 @@ export function skippedPomodoroPhase(phase, completedFocusSessions) {
     : { phase: "focus", completedFocusSessions };
 }
 
+export function shouldAutoStartAfter(completedPhase) {
+  return completedPhase === "focus";
+}
+
 export function formatTime(totalSeconds) {
   const safeSeconds = Math.max(0, Math.floor(totalSeconds));
   const minutes = Math.floor(safeSeconds / 60);
