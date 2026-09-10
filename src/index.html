@@ -8,6 +8,21 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <header class="pomodoro-bar" aria-label="Таймер Pomodoro">
+      <div class="pomodoro-heading">
+        <span class="tomato" aria-hidden="true">🍅</span>
+        <div>
+          <p id="pomodoro-phase" class="pomodoro-phase">Фокус</p>
+          <div id="pomodoro-rounds" class="pomodoro-rounds" aria-label="Завершено рабочих сессий в цикле"></div>
+        </div>
+      </div>
+      <time id="pomodoro-time" class="pomodoro-time" aria-live="polite">25:00</time>
+      <div class="pomodoro-actions">
+        <button id="pomodoro-toggle" class="primary" type="button">Старт</button>
+        <button id="pomodoro-reset" class="secondary" type="button">Сбросить</button>
+        <button id="pomodoro-skip" class="secondary" type="button">Пропустить</button>
+      </div>
+    </header>
     <main class="workspace">
       <section class="panel">
         <header class="panel-header">

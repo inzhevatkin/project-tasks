@@ -1,4 +1,5 @@
 import { createProject, createProjectType, createTask, normalizeWorkspace } from "./models.js";
+import { POMODORO_PHASES, durationFor, formatTime, nextPomodoroPhase, skippedPomodoroPhase } from "./pomodoro.js";
 
 const elements = {
   typeForm: document.querySelector("#type-form"),
@@ -24,13 +25,22 @@ const elements = {
   confirmDialog: document.querySelector("#confirm-dialog"),
   confirmTitle: document.querySelector("#confirm-title"),
   confirmMessage: document.querySelector("#confirm-message"),
-  themeToggle: document.querySelector("#theme-toggle")
+  themeToggle: document.querySelector("#theme-toggle"),
+  pomodoroPhase: document.querySelector("#pomodoro-phase"),
+  pomodoroTime: document.querySelector("#pomodoro-time"),
+  pomodoroRounds: document.querySelector("#pomodoro-rounds"),
+  pomodoroToggle: document.querySelector("#pomodoro-toggle"),
+  pomodoroReset: document.querySelector("#pomodoro-reset"),
+  pomodoroSkip: document.querySelector("#pomodoro-skip")
 };
 
 const state = {
   projectTypes: [], projects: [], selectedTypeId: null,
   selectedProjectId: null, selectedTaskId: null, saveTimer: null
 };
+const POMODORO_STORAGE_KEY = "projectTasks.pomodoro";
+let pomodoro = restorePomodoro();
+let pomodoroInterval = null;
 
 const selectedType = () => state.projectTypes.find((type) => type.id === state.selectedTypeId) ?? null;
 const projectsForSelectedType = () => state.projects.filter((project) => project.typeId === state.selectedTypeId);
@@ -50,6 +60,99 @@ function initialTheme() {
   const saved = localStorage.getItem("projectTasks.theme");
   if (saved === "dark" || saved === "light") return saved;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function restorePomodoro() {
+  const fallback = {
+    phase: "focus", secondsRemaining: durationFor("focus"),
+    completedFocusSessions: 0, running: false, deadline: null
+  };
+  try {
+    const saved = JSON.parse(localStorage.getItem(POMODORO_STORAGE_KEY));
+    if (!saved || !POMODORO_PHASES[saved.phase]) return fallback;
+    const completed = Number.isInteger(saved.completedFocusSessions) && saved.completedFocusSessions >= 0
+      ? saved.completedFocusSessions : 0;
+    if (saved.running && Number.isFinite(saved.deadline)) {
+      const remaining = Math.ceil((saved.deadline - Date.now()) / 1000);
+      if (remaining > 0) {
+        return { phase: saved.phase, secondsRemaining: remaining, completedFocusSessions: completed, running: true, deadline: saved.deadline };
+      }
+      const next = nextPomodoroPhase(saved.phase, completed);
+      return { ...next, secondsRemaining: durationFor(next.phase), running: false, deadline: null };
+    }
+    const maximum = durationFor(saved.phase);
+    const remaining = Number.isFinite(saved.secondsRemaining)
+      ? Math.min(maximum, Math.max(1, Math.ceil(saved.secondsRemaining))) : maximum;
+    return { phase: saved.phase, secondsRemaining: remaining, completedFocusSessions: completed, running: false, deadline: null };
+  } catch {
+    return fallback;
+  }
+}
+
+function persistPomodoro() {
+  localStorage.setItem(POMODORO_STORAGE_KEY, JSON.stringify(pomodoro));
+}
+
+function completedRoundsInCycle() {
+  const remainder = pomodoro.completedFocusSessions % 4;
+  return pomodoro.phase === "longBreak" && remainder === 0 && pomodoro.completedFocusSessions > 0 ? 4 : remainder;
+}
+
+function renderPomodoro() {
+  const phase = POMODORO_PHASES[pomodoro.phase];
+  const formatted = formatTime(pomodoro.secondsRemaining);
+  elements.pomodoroPhase.textContent = phase.label;
+  elements.pomodoroTime.textContent = formatted;
+  elements.pomodoroTime.dateTime = `PT${pomodoro.secondsRemaining}S`;
+  elements.pomodoroToggle.textContent = pomodoro.running ? "Пауза" : "Старт";
+  elements.pomodoroRounds.replaceChildren(...Array.from({ length: 4 }, (_, index) => {
+    const dot = document.createElement("span");
+    dot.className = `pomodoro-dot${index < completedRoundsInCycle() ? " completed" : ""}`;
+    return dot;
+  }));
+  document.title = pomodoro.running ? `${formatted} · ${phase.label} — Мои проекты` : "Мои проекты";
+}
+
+function startPomodoroInterval() {
+  clearInterval(pomodoroInterval);
+  pomodoroInterval = pomodoro.running ? setInterval(updatePomodoro, 250) : null;
+}
+
+function updatePomodoro() {
+  if (!pomodoro.running) return;
+  pomodoro.secondsRemaining = Math.max(0, Math.ceil((pomodoro.deadline - Date.now()) / 1000));
+  if (pomodoro.secondsRemaining === 0) {
+    finishPomodoro();
+    return;
+  }
+  renderPomodoro();
+}
+
+function finishPomodoro() {
+  const next = nextPomodoroPhase(pomodoro.phase, pomodoro.completedFocusSessions);
+  pomodoro = { ...next, secondsRemaining: durationFor(next.phase), running: false, deadline: null };
+  startPomodoroInterval();
+  persistPomodoro();
+  renderPomodoro();
+  playTimerChime();
+}
+
+function playTimerChime() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const context = new AudioContext();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.frequency.value = 740;
+    gain.gain.setValueAtTime(0.18, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.7);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.7);
+    oscillator.addEventListener("ended", () => context.close());
+  } catch (error) {
+    console.warn("Не удалось воспроизвести сигнал таймера", error);
+  }
 }
 
 function textSpan(text, className) {
@@ -285,8 +388,41 @@ elements.themeToggle.addEventListener("click", () => {
   applyTheme(nextTheme);
 });
 
+elements.pomodoroToggle.addEventListener("click", () => {
+  if (pomodoro.running) {
+    updatePomodoro();
+    pomodoro.running = false;
+    pomodoro.deadline = null;
+  } else {
+    pomodoro.running = true;
+    pomodoro.deadline = Date.now() + pomodoro.secondsRemaining * 1000;
+  }
+  startPomodoroInterval();
+  persistPomodoro();
+  renderPomodoro();
+});
+
+elements.pomodoroReset.addEventListener("click", () => {
+  pomodoro.secondsRemaining = durationFor(pomodoro.phase);
+  pomodoro.running = false;
+  pomodoro.deadline = null;
+  startPomodoroInterval();
+  persistPomodoro();
+  renderPomodoro();
+});
+
+elements.pomodoroSkip.addEventListener("click", () => {
+  const next = skippedPomodoroPhase(pomodoro.phase, pomodoro.completedFocusSessions);
+  pomodoro = { ...next, secondsRemaining: durationFor(next.phase), running: false, deadline: null };
+  startPomodoroInterval();
+  persistPomodoro();
+  renderPomodoro();
+});
+
 async function initialize() {
   applyTheme(initialTheme());
+  renderPomodoro();
+  startPomodoroInterval();
   const stored = await window.projectTasks.load();
   const workspace = normalizeWorkspace(stored);
   state.projectTypes = workspace.projectTypes;

@@ -43,10 +43,20 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; min-width: 900px; min-height: 100vh; color: var(--text); background: var(--app-bg); }
+body { display: flex; min-width: 900px; min-height: 100vh; height: 100vh; flex-direction: column; margin: 0; color: var(--text); background: var(--app-bg); overflow: hidden; }
 button, input, textarea { font: inherit; }
 button { cursor: pointer; }
-.workspace { display: grid; grid-template-columns: minmax(230px,.8fr) minmax(360px,1.45fr) minmax(290px,1fr); gap: 14px; min-height: 100vh; padding: 22px; }
+.pomodoro-bar { display: grid; grid-template-columns: minmax(190px,1fr) auto minmax(300px,1fr); align-items: center; gap: 20px; padding: 12px 22px; background: var(--panel-bg); border-bottom: 1px solid var(--soft-border); box-shadow: 0 4px 18px rgb(0 0 0 / 5%); }
+.pomodoro-heading { display: flex; align-items: center; gap: 10px; }
+.tomato { font-size: 27px; }
+.pomodoro-phase { margin: 0 0 5px; font-size: 14px; font-weight: 700; }
+.pomodoro-time { min-width: 112px; font-variant-numeric: tabular-nums; font-size: 34px; font-weight: 750; line-height: 1; text-align: center; letter-spacing: .02em; }
+.pomodoro-rounds { display: flex; gap: 5px; }
+.pomodoro-dot { width: 7px; height: 7px; background: var(--border); border-radius: 50%; }
+.pomodoro-dot.completed { background: #ef4444; }
+.pomodoro-actions { display: flex; justify-content: flex-end; gap: 7px; }
+.pomodoro-actions button { min-width: 92px; }
+.workspace { display: grid; grid-template-columns: minmax(230px,.8fr) minmax(360px,1.45fr) minmax(290px,1fr); flex: 1; gap: 14px; min-height: 0; padding: 14px 22px 22px; }
 .panel { min-width: 0; display: flex; flex-direction: column; padding: 22px; background: var(--panel-bg); border: 1px solid var(--soft-border); border-radius: 16px; box-shadow: 0 8px 24px rgb(0 0 0 / 8%); }
 .panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .eyebrow { margin: 0; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .08em; }
@@ -100,4 +110,4 @@ dialog::backdrop { background: rgb(20 27 45 / 35%); }
 dialog h3 { margin: 0 0 8px; }
 dialog p { margin: 0 0 22px; color: var(--muted); }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
-@media (max-width:1000px) { .workspace { padding: 12px; gap: 9px; } .panel { padding: 16px; } }
+@media (max-width:1000px) { .pomodoro-bar { grid-template-columns: 1fr auto 1.5fr; padding: 10px 12px; } .pomodoro-actions button { min-width: auto; padding-inline: 10px; } .workspace { padding: 10px 12px 12px; gap: 9px; } .panel { padding: 16px; } }
