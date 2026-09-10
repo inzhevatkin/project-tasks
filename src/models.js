@@ -1,6 +1,12 @@
-export function createProject(name) {
+export const DEFAULT_PROJECT_TYPE_ID = "work";
+
+export function createProjectType(name) {
+  return { id: crypto.randomUUID(), name: name.trim() };
+}
+
+export function createProject(name, typeId = DEFAULT_PROJECT_TYPE_ID) {
   return {
-    id: crypto.randomUUID(), name: name.trim(),
+    id: crypto.randomUUID(), name: name.trim(), typeId,
     createdAt: new Date().toISOString(), tasks: []
   };
 }
@@ -12,14 +18,39 @@ export function createTask(title) {
   };
 }
 
-export function normalizeProjects(value) {
-  if (!Array.isArray(value)) return [];
-  return value.filter(isObject).map((project) => ({
+export function normalizeWorkspace(value) {
+  const isLegacy = Array.isArray(value);
+  const rawProjects = isLegacy ? value : value?.projects;
+  const rawTypes = isLegacy ? [] : value?.projectTypes;
+  const projectTypes = normalizeTypes(rawTypes);
+  if (projectTypes.length === 0) {
+    projectTypes.push({ id: DEFAULT_PROJECT_TYPE_ID, name: "Работа" });
+  }
+
+  const validTypeIds = new Set(projectTypes.map((type) => type.id));
+  const fallbackTypeId = projectTypes[0].id;
+  const projects = (Array.isArray(rawProjects) ? rawProjects : []).filter(isObject).map((project) => ({
     id: textOr(project.id, crypto.randomUUID()),
     name: textOr(project.name, "Без названия"),
+    typeId: validTypeIds.has(project.typeId) ? project.typeId : fallbackTypeId,
     createdAt: textOr(project.createdAt, new Date().toISOString()),
     tasks: Array.isArray(project.tasks) ? project.tasks.filter(isObject).map(normalizeTask) : []
   }));
+
+  return { version: 2, projectTypes, projects };
+}
+
+function normalizeTypes(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  return value.filter(isObject).map((type) => ({
+    id: textOr(type.id, crypto.randomUUID()),
+    name: textOr(type.name, "Без названия")
+  })).filter((type) => {
+    if (seen.has(type.id)) return false;
+    seen.add(type.id);
+    return true;
+  });
 }
 
 function normalizeTask(task) {

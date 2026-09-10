@@ -65,6 +65,15 @@ button:disabled { cursor: default; opacity: .48; }
 .danger:hover:not(:disabled) { background: var(--danger-hover); }
 .theme-toggle { display: grid; flex: 0 0 auto; width: 42px; height: 42px; place-items: center; padding: 0; color: var(--text); background: var(--surface); border: 1px solid var(--soft-border); font-size: 18px; }
 .theme-toggle:hover { background: var(--surface-hover); }
+.compact-form { margin-bottom: 10px; }
+.type-list { display: flex; flex-wrap: wrap; gap: 7px; max-height: 116px; overflow: auto; }
+.type-item { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; color: var(--text); background: var(--surface); border: 1px solid var(--soft-border); border-radius: 999px; font-size: 13px; font-weight: 600; }
+.type-item:hover { background: var(--surface-hover); }
+.type-item.selected { color: #fff; background: #4f46e5; border-color: #4f46e5; }
+.type-count { opacity: .72; font-size: 11px; }
+.section-divider { height: 1px; margin: 16px 0; background: var(--soft-border); }
+.project-empty { display: grid; flex: 1; place-items: center; padding: 24px; color: var(--muted); text-align: center; }
+.project-list:not(:empty) + .project-empty { display: none; }
 .list { flex: 1; min-height: 100px; overflow: auto; }
 .list-item { width: 100%; display: block; margin-bottom: 8px; padding: 13px; color: var(--text); text-align: left; background: var(--surface); border: 1px solid transparent; border-radius: 10px; }
 .list-item:hover { background: var(--surface-hover); }

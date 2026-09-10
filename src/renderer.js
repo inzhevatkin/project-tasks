@@ -1,6 +1,10 @@
-import { createProject, createTask, normalizeProjects } from "./models.js";
+import { createProject, createProjectType, createTask, normalizeWorkspace } from "./models.js";
 
 const elements = {
+  typeForm: document.querySelector("#type-form"),
+  typeInput: document.querySelector("#type-input"),
+  typeList: document.querySelector("#type-list"),
+  typeTitle: document.querySelector("#type-title"),
   projectForm: document.querySelector("#project-form"),
   projectInput: document.querySelector("#project-input"),
   projectList: document.querySelector("#project-list"),
@@ -23,8 +27,13 @@ const elements = {
   themeToggle: document.querySelector("#theme-toggle")
 };
 
-const state = { projects: [], selectedProjectId: null, selectedTaskId: null, saveTimer: null };
+const state = {
+  projectTypes: [], projects: [], selectedTypeId: null,
+  selectedProjectId: null, selectedTaskId: null, saveTimer: null
+};
 
+const selectedType = () => state.projectTypes.find((type) => type.id === state.selectedTypeId) ?? null;
+const projectsForSelectedType = () => state.projects.filter((project) => project.typeId === state.selectedTypeId);
 const selectedProject = () => state.projects.find((project) => project.id === state.selectedProjectId) ?? null;
 const selectedTask = () => selectedProject()?.tasks.find((task) => task.id === state.selectedTaskId) ?? null;
 
@@ -50,8 +59,24 @@ function textSpan(text, className) {
   return span;
 }
 
+function renderTypes() {
+  elements.typeList.replaceChildren(...state.projectTypes.map((type) => {
+    const count = state.projects.filter((project) => project.typeId === type.id).length;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `type-item${type.id === state.selectedTypeId ? " selected" : ""}`;
+    button.dataset.typeId = type.id;
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(type.id === state.selectedTypeId));
+    button.append(textSpan(type.name, "type-name"), textSpan(String(count), "type-count"));
+    return button;
+  }));
+  elements.typeTitle.textContent = selectedType()?.name ?? "Выберите раздел";
+  elements.projectInput.disabled = !selectedType();
+}
+
 function renderProjects() {
-  elements.projectList.replaceChildren(...state.projects.map((project) => {
+  elements.projectList.replaceChildren(...projectsForSelectedType().map((project) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `list-item${project.id === state.selectedProjectId ? " selected" : ""}`;
@@ -96,9 +121,17 @@ function renderDetails() {
 }
 
 function render() {
+  renderTypes();
   renderProjects();
   renderTasks();
   renderDetails();
+}
+
+function selectType(id) {
+  state.selectedTypeId = id;
+  state.selectedProjectId = projectsForSelectedType()[0]?.id ?? null;
+  state.selectedTaskId = selectedProject()?.tasks[0]?.id ?? null;
+  render();
 }
 
 function selectProject(id) {
@@ -118,7 +151,7 @@ function scheduleSave() {
   elements.saveStatus.classList.remove("error");
   state.saveTimer = setTimeout(async () => {
     try {
-      await window.projectTasks.save(state.projects);
+      await window.projectTasks.save({ version: 2, projectTypes: state.projectTypes, projects: state.projects });
       elements.saveStatus.textContent = "Все изменения сохранены";
     } catch (error) {
       elements.saveStatus.textContent = "Не удалось сохранить изменения";
@@ -137,11 +170,28 @@ function askToDelete(title, message) {
   });
 }
 
+elements.typeForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = elements.typeInput.value.trim();
+  if (!name) return;
+  const type = createProjectType(name);
+  state.projectTypes.push(type);
+  elements.typeInput.value = "";
+  selectType(type.id);
+  scheduleSave();
+});
+
+elements.typeList.addEventListener("click", (event) => {
+  const item = event.target.closest("[data-type-id]");
+  if (item) selectType(item.dataset.typeId);
+});
+
 elements.projectForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const name = elements.projectInput.value.trim();
-  if (!name) return;
-  const project = createProject(name);
+  const type = selectedType();
+  if (!name || !type) return;
+  const project = createProject(name, type.id);
   state.projects.push(project);
   elements.projectInput.value = "";
   selectProject(project.id);
@@ -156,9 +206,10 @@ elements.projectList.addEventListener("click", (event) => {
 elements.deleteProject.addEventListener("click", async () => {
   const project = selectedProject();
   if (!project || !await askToDelete("Удалить проект?", `Проект «${project.name}» и все его задачи будут удалены.`)) return;
-  const index = state.projects.indexOf(project);
-  state.projects.splice(index, 1);
-  state.selectedProjectId = state.projects[Math.min(index, state.projects.length - 1)]?.id ?? null;
+  const visibleIndex = projectsForSelectedType().indexOf(project);
+  state.projects.splice(state.projects.indexOf(project), 1);
+  const remaining = projectsForSelectedType();
+  state.selectedProjectId = remaining[Math.min(visibleIndex, remaining.length - 1)]?.id ?? null;
   state.selectedTaskId = selectedProject()?.tasks[0]?.id ?? null;
   render();
   scheduleSave();
@@ -236,10 +287,15 @@ elements.themeToggle.addEventListener("click", () => {
 
 async function initialize() {
   applyTheme(initialTheme());
-  state.projects = normalizeProjects(await window.projectTasks.load());
-  state.selectedProjectId = state.projects[0]?.id ?? null;
-  state.selectedTaskId = state.projects[0]?.tasks[0]?.id ?? null;
+  const stored = await window.projectTasks.load();
+  const workspace = normalizeWorkspace(stored);
+  state.projectTypes = workspace.projectTypes;
+  state.projects = workspace.projects;
+  state.selectedTypeId = state.projectTypes[0]?.id ?? null;
+  state.selectedProjectId = projectsForSelectedType()[0]?.id ?? null;
+  state.selectedTaskId = selectedProject()?.tasks[0]?.id ?? null;
   render();
+  if (Array.isArray(stored)) await window.projectTasks.save(workspace);
 }
 
 initialize().catch((error) => {

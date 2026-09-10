@@ -12,20 +12,21 @@ function dataPath() {
 
 async function loadProjects() {
   try {
-    const value = JSON.parse(await readFile(dataPath(), "utf8"));
-    return Array.isArray(value) ? value : [];
+    return JSON.parse(await readFile(dataPath(), "utf8"));
   } catch (error) {
     if (error.code !== "ENOENT") console.error("Не удалось загрузить данные:", error);
     return [];
   }
 }
 
-async function saveProjects(_event, projects) {
-  if (!Array.isArray(projects)) throw new TypeError("Ожидался список проектов");
+async function saveProjects(_event, workspace) {
+  if (!workspace || !Array.isArray(workspace.projectTypes) || !Array.isArray(workspace.projects)) {
+    throw new TypeError("Ожидались типы проектов и список проектов");
+  }
   const target = dataPath();
   const temporary = `${target}.tmp`;
   await mkdir(dirname(target), { recursive: true });
-  await writeFile(temporary, JSON.stringify(projects, null, 2), "utf8");
+  await writeFile(temporary, JSON.stringify(workspace, null, 2), "utf8");
   await rename(temporary, target);
   return true;
 }
