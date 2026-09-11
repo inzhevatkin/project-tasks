@@ -38,6 +38,7 @@ npm test
 - `electron/main.js` — создание окна и обработчики IPC;
 - `electron/workspace-store.js` — загрузка JSON и очередь сохранения;
 - `electron/preload.cjs` — безопасный мост между интерфейсом и файловой системой;
+- `assets/icon.png` и `assets/icon.ico` — иконки приложения для Electron и Windows;
 - `src/models.js` — модели проектов и задач;
 - `src/renderer.js` — запуск приложения и переключение страниц;
 - `src/workspace-controller.js` — проекты, задачи и автосохранение;

@@ -20,6 +20,7 @@ function createWindow() {
   const window = new BrowserWindow({
     width: 1240, height: 760, minWidth: 940, minHeight: 600,
     backgroundColor: "#f3f5f9", title: "Мои проекты",
+    icon: join(currentDirectory, "../assets/icon.png"),
     webPreferences: {
       preload: join(currentDirectory, "preload.cjs"),
       contextIsolation: true, nodeIntegration: false, sandbox: true

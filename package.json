@@ -1,5 +1,6 @@
 {
   "name": "project-tasks",
+  "productName": "Мои проекты",
   "version": "0.1.0",
   "description": "Кроссплатформенный менеджер проектов и задач",
   "main": "electron/main.js",
@@ -7,5 +8,10 @@
   "devDependencies": { "electron": "44.2.0" },
   "engines": { "node": ">=22" },
   "private": true,
+  "build": {
+    "appId": "com.inzhevatkin.projecttasks",
+    "win": { "icon": "assets/icon.ico" },
+    "linux": { "icon": "assets/icon.png" }
+  },
   "type": "module"
 }
