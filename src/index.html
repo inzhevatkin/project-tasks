@@ -23,7 +23,11 @@
         <button id="pomodoro-skip" class="secondary" type="button">Пропустить</button>
       </div>
     </header>
-    <main class="workspace">
+    <nav class="view-tabs" aria-label="Разделы приложения">
+      <button id="show-tasks" class="view-tab selected" type="button">Задачи</button>
+      <button id="show-statistics" class="view-tab" type="button">Статистика</button>
+    </nav>
+    <main id="tasks-page" class="workspace">
       <section class="panel">
         <header class="panel-header">
           <div><p class="eyebrow">ТИПЫ ПРОЕКТОВ</p><h1>Разделы</h1></div>
@@ -69,6 +73,31 @@
           <p id="save-status" class="save-status">Изменения сохраняются автоматически</p>
           <button id="delete-task" class="danger" type="button">Удалить задачу</button>
         </div>
+      </section>
+    </main>
+
+    <main id="statistics-page" class="statistics-page" hidden>
+      <header class="statistics-header">
+        <div><p class="eyebrow">POMODORO</p><h2>Статистика</h2></div>
+        <p>История запусков и завершённых интервалов хранится локально.</p>
+      </header>
+      <section class="summary-grid" aria-label="Сводка Pomodoro">
+        <article class="summary-card"><span>Сегодня</span><strong id="stat-today">0</strong><small>завершено фокусов</small></article>
+        <article class="summary-card"><span>Всего запусков</span><strong id="stat-launches">0</strong><small>работа и перерывы</small></article>
+        <article class="summary-card"><span>Фокус</span><strong id="stat-minutes">0</strong><small>минут работы</small></article>
+        <article class="summary-card"><span>Завершено</span><strong id="stat-completed">0</strong><small>рабочих интервалов</small></article>
+      </section>
+      <section class="statistics-grid">
+        <article class="statistics-card">
+          <h3>Последние 7 дней</h3>
+          <div id="weekly-chart" class="weekly-chart" aria-label="Завершённые рабочие интервалы за последние 7 дней"></div>
+        </article>
+        <article class="statistics-card history-card">
+          <h3>Последние запуски</h3>
+          <div class="history-head"><span>Режим</span><span>Начало</span><span>Результат</span></div>
+          <div id="pomodoro-history" class="pomodoro-history"></div>
+          <div id="history-empty" class="history-empty">Запустите первый Pomodoro — запись появится здесь.</div>
+        </article>
       </section>
     </main>
 

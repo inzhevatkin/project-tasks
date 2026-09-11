@@ -1,5 +1,6 @@
 import { createProject, createProjectType, createTask, normalizeWorkspace } from "./models.js";
 import { POMODORO_PHASES, durationFor, formatTime, nextPomodoroPhase, shouldAutoStartAfter, skippedPomodoroPhase } from "./pomodoro.js";
+import { createPomodoroRun, finishPomodoroRun, focusCountsForLastDays, normalizePomodoroHistory, summarizePomodoro } from "./statistics.js";
 
 const elements = {
   typeForm: document.querySelector("#type-form"),
@@ -31,7 +32,17 @@ const elements = {
   pomodoroRounds: document.querySelector("#pomodoro-rounds"),
   pomodoroToggle: document.querySelector("#pomodoro-toggle"),
   pomodoroReset: document.querySelector("#pomodoro-reset"),
-  pomodoroSkip: document.querySelector("#pomodoro-skip")
+  pomodoroSkip: document.querySelector("#pomodoro-skip"),
+  showTasks: document.querySelector("#show-tasks"),
+  showStatistics: document.querySelector("#show-statistics"),
+  tasksPage: document.querySelector("#tasks-page"),
+  statisticsPage: document.querySelector("#statistics-page"),
+  statToday: document.querySelector("#stat-today"),
+  statLaunches: document.querySelector("#stat-launches"),
+  statMinutes: document.querySelector("#stat-minutes"),
+  statCompleted: document.querySelector("#stat-completed"),
+  weeklyChart: document.querySelector("#weekly-chart"),
+  pomodoroHistory: document.querySelector("#pomodoro-history")
 };
 
 const state = {
@@ -39,6 +50,8 @@ const state = {
   selectedProjectId: null, selectedTaskId: null, saveTimer: null
 };
 const POMODORO_STORAGE_KEY = "projectTasks.pomodoro";
+const POMODORO_HISTORY_KEY = "projectTasks.pomodoroHistory";
+let pomodoroHistory = restorePomodoroHistory();
 let pomodoro = restorePomodoro();
 let pomodoroInterval = null;
 let audioContext = null;
@@ -66,7 +79,7 @@ function initialTheme() {
 function restorePomodoro() {
   const fallback = {
     phase: "focus", secondsRemaining: durationFor("focus"),
-    completedFocusSessions: 0, running: false, deadline: null
+    completedFocusSessions: 0, running: false, deadline: null, activeRunId: null
   };
   try {
     const saved = JSON.parse(localStorage.getItem(POMODORO_STORAGE_KEY));
@@ -76,27 +89,66 @@ function restorePomodoro() {
     if (saved.running && Number.isFinite(saved.deadline)) {
       const remaining = Math.ceil((saved.deadline - Date.now()) / 1000);
       if (remaining > 0) {
-        return { phase: saved.phase, secondsRemaining: remaining, completedFocusSessions: completed, running: true, deadline: saved.deadline };
+        return {
+          phase: saved.phase, secondsRemaining: remaining, completedFocusSessions: completed,
+          running: true, deadline: saved.deadline,
+          activeRunId: typeof saved.activeRunId === "string" ? saved.activeRunId : null
+        };
       }
-      const next = nextPomodoroPhase(saved.phase, completed);
-      const running = shouldAutoStartAfter(saved.phase);
-      const secondsRemaining = durationFor(next.phase);
       return {
-        ...next, secondsRemaining, running,
-        deadline: running ? Date.now() + secondsRemaining * 1000 : null
+        phase: saved.phase, secondsRemaining: 0, completedFocusSessions: completed,
+        running: true, deadline: saved.deadline,
+        activeRunId: typeof saved.activeRunId === "string" ? saved.activeRunId : null
       };
     }
     const maximum = durationFor(saved.phase);
     const remaining = Number.isFinite(saved.secondsRemaining)
       ? Math.min(maximum, Math.max(1, Math.ceil(saved.secondsRemaining))) : maximum;
-    return { phase: saved.phase, secondsRemaining: remaining, completedFocusSessions: completed, running: false, deadline: null };
+    return {
+      phase: saved.phase, secondsRemaining: remaining, completedFocusSessions: completed,
+      running: false, deadline: null,
+      activeRunId: typeof saved.activeRunId === "string" ? saved.activeRunId : null
+    };
   } catch {
     return fallback;
   }
 }
 
+function restorePomodoroHistory() {
+  try {
+    return normalizePomodoroHistory(JSON.parse(localStorage.getItem(POMODORO_HISTORY_KEY)));
+  } catch {
+    return [];
+  }
+}
+
 function persistPomodoro() {
   localStorage.setItem(POMODORO_STORAGE_KEY, JSON.stringify(pomodoro));
+}
+
+function persistPomodoroHistory() {
+  pomodoroHistory = pomodoroHistory.slice(-2000);
+  localStorage.setItem(POMODORO_HISTORY_KEY, JSON.stringify(pomodoroHistory));
+}
+
+function ensureActiveRun() {
+  if (pomodoro.activeRunId && pomodoroHistory.some((run) => run.id === pomodoro.activeRunId && run.outcome === "active")) return;
+  const elapsedSeconds = Math.max(0, durationFor(pomodoro.phase) - pomodoro.secondsRemaining);
+  const startedAt = new Date(Date.now() - elapsedSeconds * 1000).toISOString();
+  const run = createPomodoroRun(pomodoro.phase, startedAt);
+  pomodoroHistory.push(run);
+  pomodoro.activeRunId = run.id;
+  persistPomodoroHistory();
+  persistPomodoro();
+}
+
+function finishActiveRun(outcome) {
+  const index = pomodoroHistory.findIndex((run) => run.id === pomodoro.activeRunId && run.outcome === "active");
+  if (index >= 0) {
+    pomodoroHistory[index] = finishPomodoroRun(pomodoroHistory[index], outcome, pomodoro.secondsRemaining);
+    persistPomodoroHistory();
+  }
+  pomodoro.activeRunId = null;
 }
 
 function completedRoundsInCycle() {
@@ -119,6 +171,54 @@ function renderPomodoro() {
   document.title = pomodoro.running ? `${formatted} · ${phase.label} — Мои проекты` : "Мои проекты";
 }
 
+function renderStatistics() {
+  const summary = summarizePomodoro(pomodoroHistory);
+  elements.statToday.textContent = String(summary.todayFocus);
+  elements.statLaunches.textContent = String(summary.launches);
+  elements.statMinutes.textContent = String(summary.focusMinutes);
+  elements.statCompleted.textContent = String(summary.completedFocus);
+
+  const days = focusCountsForLastDays(pomodoroHistory);
+  const maximum = Math.max(1, ...days.map((day) => day.count));
+  elements.weeklyChart.replaceChildren(...days.map((day) => {
+    const column = document.createElement("div");
+    column.className = "chart-day";
+    const track = document.createElement("div");
+    track.className = "chart-bar-track";
+    const bar = document.createElement("div");
+    bar.className = "chart-bar";
+    bar.style.height = `${Math.max(day.count > 0 ? 8 : 2, day.count / maximum * 100)}%`;
+    track.append(bar);
+    const count = textSpan(String(day.count), "chart-count");
+    const label = textSpan(day.date.toLocaleDateString("ru-RU", { weekday: "short", day: "2-digit" }), "chart-label");
+    column.append(track, count, label);
+    return column;
+  }));
+
+  const recent = [...pomodoroHistory].reverse().slice(0, 30);
+  elements.pomodoroHistory.replaceChildren(...recent.map((run) => {
+    const row = document.createElement("div");
+    row.className = "history-row";
+    const mode = document.createElement("span");
+    mode.className = "history-mode";
+    mode.append(textSpan(run.phase === "focus" ? "🍅" : "☕", "history-icon"), textSpan(POMODORO_PHASES[run.phase].label, "history-label"));
+    const started = textSpan(new Date(run.startedAt).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }), "history-start");
+    const outcomeLabels = { active: pomodoro.running ? "Идёт" : "Пауза", completed: "Завершён", reset: "Сброшен", skipped: "Пропущен" };
+    const outcome = textSpan(outcomeLabels[run.outcome], `history-status ${run.outcome}`);
+    row.append(mode, started, outcome);
+    return row;
+  }));
+}
+
+function showPage(page) {
+  const statisticsVisible = page === "statistics";
+  elements.tasksPage.hidden = statisticsVisible;
+  elements.statisticsPage.hidden = !statisticsVisible;
+  elements.showTasks.classList.toggle("selected", !statisticsVisible);
+  elements.showStatistics.classList.toggle("selected", statisticsVisible);
+  if (statisticsVisible) renderStatistics();
+}
+
 function startPomodoroInterval() {
   clearInterval(pomodoroInterval);
   pomodoroInterval = pomodoro.running ? setInterval(updatePomodoro, 250) : null;
@@ -136,16 +236,20 @@ function updatePomodoro() {
 
 function finishPomodoro() {
   const completedPhase = pomodoro.phase;
+  finishActiveRun("completed");
   const next = nextPomodoroPhase(pomodoro.phase, pomodoro.completedFocusSessions);
   const running = shouldAutoStartAfter(completedPhase);
   const secondsRemaining = durationFor(next.phase);
   pomodoro = {
     ...next, secondsRemaining, running,
-    deadline: running ? Date.now() + secondsRemaining * 1000 : null
+    deadline: running ? Date.now() + secondsRemaining * 1000 : null,
+    activeRunId: null
   };
+  if (running) ensureActiveRun();
   startPomodoroInterval();
   persistPomodoro();
   renderPomodoro();
+  renderStatistics();
   playTimerChime(completedPhase);
 }
 
@@ -421,6 +525,9 @@ elements.themeToggle.addEventListener("click", () => {
   applyTheme(nextTheme);
 });
 
+elements.showTasks.addEventListener("click", () => showPage("tasks"));
+elements.showStatistics.addEventListener("click", () => showPage("statistics"));
+
 elements.pomodoroToggle.addEventListener("click", () => {
   if (pomodoro.running) {
     updatePomodoro();
@@ -428,35 +535,43 @@ elements.pomodoroToggle.addEventListener("click", () => {
     pomodoro.deadline = null;
   } else {
     prepareAudio();
+    ensureActiveRun();
     pomodoro.running = true;
     pomodoro.deadline = Date.now() + pomodoro.secondsRemaining * 1000;
   }
   startPomodoroInterval();
   persistPomodoro();
   renderPomodoro();
+  renderStatistics();
 });
 
 elements.pomodoroReset.addEventListener("click", () => {
+  finishActiveRun("reset");
   pomodoro.secondsRemaining = durationFor(pomodoro.phase);
   pomodoro.running = false;
   pomodoro.deadline = null;
   startPomodoroInterval();
   persistPomodoro();
   renderPomodoro();
+  renderStatistics();
 });
 
 elements.pomodoroSkip.addEventListener("click", () => {
+  finishActiveRun("skipped");
   const next = skippedPomodoroPhase(pomodoro.phase, pomodoro.completedFocusSessions);
-  pomodoro = { ...next, secondsRemaining: durationFor(next.phase), running: false, deadline: null };
+  pomodoro = { ...next, secondsRemaining: durationFor(next.phase), running: false, deadline: null, activeRunId: null };
   startPomodoroInterval();
   persistPomodoro();
   renderPomodoro();
+  renderStatistics();
 });
 
 async function initialize() {
   applyTheme(initialTheme());
   renderPomodoro();
+  if (pomodoro.running) ensureActiveRun();
   startPomodoroInterval();
+  renderStatistics();
   const stored = await window.projectTasks.load();
   const workspace = normalizeWorkspace(stored);
   state.projectTypes = workspace.projectTypes;
