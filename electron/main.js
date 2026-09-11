@@ -14,6 +14,9 @@ if (isSmokeTest) {
     try { rmSync(testData, { recursive: true, force: true }); }
     catch (error) { console.warn("Temporary test data cleanup:", error.message); }
   });
+} else {
+  // Keep user data stable when the visible product name changes.
+  app.setPath("userData", join(app.getPath("appData"), "project-tasks"));
 }
 
 function createWindow() {
