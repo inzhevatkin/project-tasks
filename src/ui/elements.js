@@ -31,6 +31,7 @@ export const elements = {
   pomodoroSkip: document.querySelector("#pomodoro-skip"),
   showTasks: document.querySelector("#show-tasks"),
   showStatistics: document.querySelector("#show-statistics"),
+  appVersion: document.querySelector("#app-version"),
   tasksPage: document.querySelector("#tasks-page"),
   statisticsPage: document.querySelector("#statistics-page"),
   statToday: document.querySelector("#stat-today"),

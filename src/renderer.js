@@ -17,6 +17,8 @@ function showPage(statisticsVisible) {
 }
 
 try {
+  const appInfo = await window.projectTasks.getAppInfo();
+  elements.appVersion.textContent = `Версия ${appInfo.version}`;
   timer.initialize();
   await workspace.initialize();
   document.documentElement.dataset.ready = "true";
