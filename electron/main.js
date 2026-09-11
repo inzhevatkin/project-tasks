@@ -36,6 +36,9 @@ function createWindow() {
               if (document.querySelector("#app-version").textContent !== "Версия ${app.getVersion()}") {
                 return reject(new Error("Application version was not rendered"));
               }
+              document.querySelector("#show-about").click();
+              if (!document.querySelector("#about-dialog").open) return reject(new Error("About dialog failed"));
+              document.querySelector("#about-dialog").close();
               document.querySelector("#show-statistics").click();
               if (document.querySelector("#statistics-page").hidden) return reject(new Error("Statistics navigation failed"));
               document.querySelector("#show-tasks").click();
@@ -58,7 +61,10 @@ function createWindow() {
 
 app.whenReady().then(() => {
   const store = createWorkspaceStore(join(app.getPath("userData"), "projects.json"));
-  ipcMain.handle("app:info", () => ({ version: app.getVersion() }));
+  ipcMain.handle("app:info", () => ({
+    description: "Кроссплатформенный менеджер проектов и задач",
+    version: app.getVersion()
+  }));
   ipcMain.handle("projects:load", () => store.load());
   ipcMain.handle("projects:save", (_event, workspace) => store.save(workspace));
   createWindow();

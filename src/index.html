@@ -26,7 +26,10 @@
     <nav class="view-tabs" aria-label="Разделы приложения">
       <button id="show-tasks" class="view-tab selected" type="button">Задачи</button>
       <button id="show-statistics" class="view-tab" type="button">Статистика</button>
-      <p class="app-description">Менеджер проектов и задач <span aria-hidden="true">·</span> <span id="app-version">Версия …</span></p>
+      <div class="app-meta">
+        <span id="app-version" class="version-badge">Версия …</span>
+        <button id="show-about" class="about-button" type="button">О программе</button>
+      </div>
     </nav>
     <main id="tasks-page" class="workspace">
       <section class="panel">
@@ -110,6 +113,15 @@
           <button value="cancel" class="secondary">Отмена</button>
           <button value="confirm" class="danger">Удалить</button>
         </div>
+      </form>
+    </dialog>
+    <dialog id="about-dialog" class="about-dialog">
+      <form method="dialog">
+        <p class="eyebrow">МОИ ПРОЕКТЫ</p>
+        <h3>О программе</h3>
+        <p id="about-description">Кроссплатформенный менеджер проектов и задач</p>
+        <p id="about-version" class="about-version">Версия …</p>
+        <div class="dialog-actions"><button value="close" class="primary">Закрыть</button></div>
       </form>
     </dialog>
     <script type="module" src="renderer.js"></script>

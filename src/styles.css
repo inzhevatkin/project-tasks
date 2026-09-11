@@ -60,7 +60,10 @@ button { cursor: pointer; }
 .view-tab { padding: 8px 14px; color: var(--muted); background: transparent; }
 .view-tab:hover { color: var(--text); background: var(--surface); }
 .view-tab.selected { color: #fff; background: #4f46e5; }
-.app-description { align-self: center; margin: 0 0 0 auto; color: var(--muted); font-size: 12px; }
+.app-meta { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.version-badge { padding: 6px 9px; color: var(--text); background: var(--surface); border: 1px solid var(--soft-border); border-radius: 999px; font-size: 12px; font-weight: 650; }
+.about-button { padding: 7px 10px; color: var(--muted); background: transparent; font-size: 12px; }
+.about-button:hover { color: var(--text); background: var(--surface); }
 .workspace { display: grid; grid-template-columns: minmax(230px,.8fr) minmax(360px,1.45fr) minmax(290px,1fr); flex: 1; gap: 14px; min-height: 0; padding: 14px 22px 22px; }
 .panel { min-width: 0; display: flex; flex-direction: column; padding: 22px; background: var(--panel-bg); border: 1px solid var(--soft-border); border-radius: 16px; box-shadow: 0 8px 24px rgb(0 0 0 / 8%); }
 .panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -114,6 +117,8 @@ dialog { width: min(420px,calc(100% - 40px)); padding: 22px; color: var(--text);
 dialog::backdrop { background: rgb(20 27 45 / 35%); }
 dialog h3 { margin: 0 0 8px; }
 dialog p { margin: 0 0 22px; color: var(--muted); }
+.about-dialog h3 { margin-top: 5px; font-size: 24px; }
+.about-dialog .about-version { color: var(--text); font-weight: 700; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .statistics-page { flex: 1; min-height: 0; padding: 14px 22px 22px; overflow: auto; }
 .statistics-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 14px; }

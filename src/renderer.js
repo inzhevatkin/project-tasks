@@ -8,6 +8,7 @@ const workspace = createWorkspaceController(elements);
 const timer = createPomodoroController(elements);
 elements.showTasks.addEventListener("click", () => showPage(false));
 elements.showStatistics.addEventListener("click", () => showPage(true));
+elements.showAbout.addEventListener("click", () => elements.aboutDialog.showModal());
 
 function showPage(statisticsVisible) {
   elements.tasksPage.hidden = statisticsVisible;
@@ -19,6 +20,9 @@ function showPage(statisticsVisible) {
 try {
   const appInfo = await window.projectTasks.getAppInfo();
   elements.appVersion.textContent = `Версия ${appInfo.version}`;
+  elements.aboutVersion.textContent = `Версия ${appInfo.version}`;
+  elements.aboutDescription.textContent = appInfo.description;
+  document.title = `Мои проекты — версия ${appInfo.version}`;
   timer.initialize();
   await workspace.initialize();
   document.documentElement.dataset.ready = "true";
