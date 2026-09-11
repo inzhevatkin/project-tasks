@@ -35,10 +35,15 @@ npm test
 
 ## Структура
 
-- `electron/main.js` — создание окна и сохранение данных;
+- `electron/main.js` — создание окна и обработчики IPC;
+- `electron/workspace-store.js` — загрузка JSON и очередь сохранения;
 - `electron/preload.cjs` — безопасный мост между интерфейсом и файловой системой;
 - `src/models.js` — модели проектов и задач;
-- `src/renderer.js` — состояние экрана и пользовательские действия;
+- `src/renderer.js` — запуск приложения и переключение страниц;
+- `src/workspace-controller.js` — проекты, задачи и автосохранение;
+- `src/pomodoro-controller.js` — жизненный цикл таймера и история сессий;
+- `src/pomodoro.js`, `src/statistics.js` — правила циклов и расчёты статистики;
+- `src/ui/` — элементы интерфейса, тема, колокольчик и отображение статистики;
 - `src/index.html`, `src/styles.css` — интерфейс;
 - `test/` — тесты модели.
 
