@@ -33,11 +33,11 @@ function createWindow() {
           const deadline = Date.now() + 5000;
           const check = () => {
             if (document.documentElement.dataset.ready === "true") {
-              if (document.querySelector("#app-version").textContent !== "Версия ${app.getVersion()}") {
-                return reject(new Error("Application version was not rendered"));
-              }
               document.querySelector("#show-about").click();
               if (!document.querySelector("#about-dialog").open) return reject(new Error("About dialog failed"));
+              if (document.querySelector("#about-version").textContent !== "Версия ${app.getVersion()}") {
+                return reject(new Error("Application version was not rendered in About dialog"));
+              }
               document.querySelector("#about-dialog").close();
               document.querySelector("#show-statistics").click();
               if (document.querySelector("#statistics-page").hidden) return reject(new Error("Statistics navigation failed"));

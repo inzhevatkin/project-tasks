@@ -32,7 +32,6 @@ export const elements = {
   showTasks: document.querySelector("#show-tasks"),
   showStatistics: document.querySelector("#show-statistics"),
   showAbout: document.querySelector("#show-about"),
-  appVersion: document.querySelector("#app-version"),
   aboutDialog: document.querySelector("#about-dialog"),
   aboutDescription: document.querySelector("#about-description"),
   aboutVersion: document.querySelector("#about-version"),

@@ -61,7 +61,6 @@ button { cursor: pointer; }
 .view-tab:hover { color: var(--text); background: var(--surface); }
 .view-tab.selected { color: #fff; background: #4f46e5; }
 .app-meta { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.version-badge { padding: 6px 9px; color: var(--text); background: var(--surface); border: 1px solid var(--soft-border); border-radius: 999px; font-size: 12px; font-weight: 650; }
 .about-button { padding: 7px 10px; color: var(--muted); background: transparent; font-size: 12px; }
 .about-button:hover { color: var(--text); background: var(--surface); }
 .workspace { display: grid; grid-template-columns: minmax(230px,.8fr) minmax(360px,1.45fr) minmax(290px,1fr); flex: 1; gap: 14px; min-height: 0; padding: 14px 22px 22px; }
