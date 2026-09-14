@@ -29,15 +29,24 @@ export function normalizePomodoroHistory(value) {
   })).slice(-2000);
 }
 
-export function summarizePomodoro(history, now = new Date()) {
+export function summarizePomodoro(history, now = new Date(), currentPomodoro = null) {
   const todayKey = localDateKey(now);
   const finished = history.filter((run) => run.outcome !== "active");
   const completedFocus = finished.filter((run) => run.phase === "focus" && run.outcome === "completed");
+  const focusToday = finished.filter((run) => run.phase === "focus" && run.endedAt
+    && localDateKey(new Date(run.endedAt)) === todayKey);
+  const activeFocus = currentPomodoro?.phase === "focus" && currentPomodoro.activeRunId
+    ? history.find((run) => run.id === currentPomodoro.activeRunId && run.phase === "focus" && run.outcome === "active"
+      && localDateKey(new Date(run.startedAt)) === todayKey)
+    : null;
+  const activeSeconds = activeFocus && Number.isFinite(currentPomodoro.secondsRemaining)
+    ? Math.min(durationFor("focus"), Math.max(0, durationFor("focus") - currentPomodoro.secondsRemaining)) : 0;
   return {
     launches: history.length,
     completedFocus: completedFocus.length,
     todayFocus: completedFocus.filter((run) => localDateKey(new Date(run.endedAt)) === todayKey).length,
     focusMinutes: Math.round(finished.filter((run) => run.phase === "focus").reduce((sum, run) => sum + run.elapsedSeconds, 0) / 60),
+    todayFocusMinutes: Math.round((focusToday.reduce((sum, run) => sum + run.elapsedSeconds, 0) + activeSeconds) / 60),
     completedBreaks: finished.filter((run) => run.phase !== "focus" && run.outcome === "completed").length
   };
 }

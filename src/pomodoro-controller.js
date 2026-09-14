@@ -10,6 +10,7 @@ export function createPomodoroController(elements, { now = Date.now } = {}) {
   let pomodoro = restorePomodoro();
   let pomodoroInterval = null;
   let lastTaskbarState = "";
+  let lastStatisticsClockKey = "";
 
   function restorePomodoro() {
     const fallback = {
@@ -125,6 +126,7 @@ export function createPomodoroController(elements, { now = Date.now } = {}) {
       return;
     }
     renderPomodoro();
+    if (statisticsClockKey() !== lastStatisticsClockKey) renderStatistics();
   }
 
   function refreshRemaining() {
@@ -201,5 +203,14 @@ export function createPomodoroController(elements, { now = Date.now } = {}) {
   }
   return { initialize, dispose: () => clearInterval(pomodoroInterval) };
 
-  function renderStatistics() { updateStatistics(elements, pomodoroHistory, pomodoro); }
+  function statisticsClockKey() {
+    const elapsedMinute = pomodoro.phase === "focus" && pomodoro.activeRunId
+      ? Math.round((durationFor("focus") - pomodoro.secondsRemaining) / 60) : "";
+    return `${new Date(now()).toDateString()}:${elapsedMinute}`;
+  }
+
+  function renderStatistics() {
+    updateStatistics(elements, pomodoroHistory, pomodoro);
+    lastStatisticsClockKey = statisticsClockKey();
+  }
 }

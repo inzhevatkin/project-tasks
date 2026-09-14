@@ -3,10 +3,10 @@ import { focusCountsForLastDays, summarizePomodoro } from "../statistics.js";
 import { textSpan } from "./dom.js";
 
 export function renderStatistics(elements, pomodoroHistory, pomodoro) {
-  const summary = summarizePomodoro(pomodoroHistory);
+  const summary = summarizePomodoro(pomodoroHistory, new Date(), pomodoro);
   elements.statToday.textContent = String(summary.todayFocus);
   elements.statLaunches.textContent = String(summary.launches);
-  elements.statMinutes.textContent = String(summary.focusMinutes);
+  elements.statMinutes.textContent = String(summary.todayFocusMinutes);
   elements.statCompleted.textContent = String(summary.completedFocus);
 
   const days = focusCountsForLastDays(pomodoroHistory);
