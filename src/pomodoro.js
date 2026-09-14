@@ -35,3 +35,13 @@ export function formatTime(totalSeconds) {
   const seconds = safeSeconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
+
+export function taskbarProgress({ phase, secondsRemaining, running, activeRunId }) {
+  if (!activeRunId) return null;
+  const duration = durationFor(phase);
+  const remaining = Math.min(duration, Math.max(0, secondsRemaining));
+  return {
+    progress: 1 - remaining / duration,
+    mode: running ? "normal" : "paused"
+  };
+}

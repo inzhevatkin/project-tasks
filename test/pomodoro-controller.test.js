@@ -12,6 +12,7 @@ function node() {
 
 test("pause/resume keeps one run and reset uses the current clock", (t) => {
   const data = new Map();
+  const taskbarStates = [];
   t.mock.method(globalThis, "setInterval", () => 1);
   t.mock.method(globalThis, "clearInterval", () => {});
   for (const key of ["document", "localStorage", "window"]) {
@@ -20,7 +21,10 @@ test("pause/resume keeps one run and reset uses the current clock", (t) => {
   }
   globalThis.document = { createElement: node };
   globalThis.localStorage = { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value) };
-  globalThis.window = { AudioContext: class { state = "running"; } };
+  globalThis.window = {
+    AudioContext: class { state = "running"; },
+    projectTasks: { setTimerProgress: state => taskbarStates.push(state) }
+  };
   const elements = new Proxy({}, { get(target, key) { return target[key] ??= node(); } });
   let clock = 1000000;
   const controller = createPomodoroController(elements, { now: () => clock });
@@ -38,4 +42,9 @@ test("pause/resume keeps one run and reset uses the current clock", (t) => {
   assert.equal(history[0].outcome, "reset");
   assert.equal(history[0].elapsedSeconds, 90);
   assert.equal(elements.pomodoroTime.textContent, "25:00");
+  assert.deepEqual(taskbarStates[0], null);
+  assert.deepEqual(taskbarStates[1], { progress: 0, mode: "normal" });
+  assert.equal(taskbarStates[3].mode, "paused");
+  assert.ok(Math.abs(taskbarStates[3].progress - 0.04) < 1e-10);
+  assert.deepEqual(taskbarStates.at(-1), null);
 });

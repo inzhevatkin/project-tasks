@@ -1,4 +1,4 @@
-import { POMODORO_PHASES, durationFor, formatTime, nextPomodoroPhase, shouldAutoStartAfter, skippedPomodoroPhase } from "./pomodoro.js";
+import { POMODORO_PHASES, durationFor, formatTime, nextPomodoroPhase, shouldAutoStartAfter, skippedPomodoroPhase, taskbarProgress } from "./pomodoro.js";
 import { createPomodoroRun, finishPomodoroRun, normalizePomodoroHistory } from "./statistics.js";
 import { prepareAudio, playTimerChime } from "./ui/bell.js";
 import { renderStatistics as updateStatistics } from "./ui/statistics-view.js";
@@ -9,6 +9,7 @@ export function createPomodoroController(elements, { now = Date.now } = {}) {
   let pomodoroHistory = restorePomodoroHistory();
   let pomodoro = restorePomodoro();
   let pomodoroInterval = null;
+  let lastTaskbarState = "";
 
   function restorePomodoro() {
     const fallback = {
@@ -103,6 +104,12 @@ export function createPomodoroController(elements, { now = Date.now } = {}) {
       return dot;
     }));
     document.title = pomodoro.running ? `${formatted} · ${phase.label} — Мои проекты` : "Мои проекты";
+    const taskbarState = taskbarProgress(pomodoro);
+    const taskbarKey = `${pomodoro.phase}:${pomodoro.secondsRemaining}:${pomodoro.running}:${pomodoro.activeRunId}`;
+    if (taskbarKey !== lastTaskbarState) {
+      window.projectTasks.setTimerProgress(taskbarState);
+      lastTaskbarState = taskbarKey;
+    }
   }
 
   function startPomodoroInterval() {

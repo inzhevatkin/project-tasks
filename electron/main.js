@@ -65,6 +65,16 @@ function createWindow() {
 
 app.whenReady().then(() => {
   const store = createWorkspaceStore(join(app.getPath("userData"), "projects.json"));
+  ipcMain.on("pomodoro:progress", (event, state) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) return;
+    if (state === null) {
+      window.setProgressBar(-1);
+    } else if (state && Number.isFinite(state.progress) && state.progress >= 0 && state.progress <= 1
+      && (state.mode === "normal" || state.mode === "paused")) {
+      window.setProgressBar(state.progress, { mode: state.mode });
+    }
+  });
   ipcMain.handle("app:info", () => ({
     description: "Кроссплатформенный менеджер проектов и задач",
     version: app.getVersion()
