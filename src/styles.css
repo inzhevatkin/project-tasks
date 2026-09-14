@@ -146,4 +146,43 @@ dialog p { margin: 0 0 22px; color: var(--muted); }
 .history-status.completed { color: #198754; background: color-mix(in srgb,#198754 13%,var(--panel-bg)); }
 .history-empty { padding: 42px 12px; color: var(--muted); text-align: center; }
 .pomodoro-history:not(:empty) + .history-empty { display: none; }
+.calendar-page { flex: 1; min-height: 0; padding: 14px 22px 22px; overflow: auto; }
+.calendar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.calendar-header h2 { margin-bottom: 0; }
+.calendar-layout { display: grid; grid-template-columns: minmax(450px,1.45fr) minmax(330px,.85fr); gap: 14px; align-items: start; }
+.calendar-card { min-width: 0; padding: 20px; background: var(--panel-bg); border: 1px solid var(--soft-border); border-radius: 14px; box-shadow: 0 8px 24px rgb(0 0 0 / 6%); }
+.calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+.calendar-toolbar h3 { margin: 0; font-size: 20px; text-transform: capitalize; }
+.calendar-toolbar button { width: 40px; padding: 8px; }
+.calendar-weekdays, .calendar-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5px; }
+.calendar-weekdays { margin-bottom: 6px; color: var(--muted); font-size: 12px; font-weight: 700; text-align: center; }
+.calendar-day { display: flex; min-width: 0; min-height: 86px; flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px; color: var(--text); text-align: left; background: var(--surface); border: 1px solid var(--soft-border); border-radius: 9px; }
+.calendar-day:hover { background: var(--surface-hover); }
+.calendar-day.outside { opacity: .48; }
+.calendar-day.today .calendar-day-number { color: #fff; background: #4f46e5; }
+.calendar-day.selected { border-color: #625be5; box-shadow: 0 0 0 2px rgb(79 70 229 / 20%); }
+.calendar-day-number { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 50%; font-size: 13px; font-weight: 700; }
+.calendar-day-event { overflow: hidden; width: 100%; padding: 3px 5px; color: var(--text); background: var(--selected); border-radius: 5px; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.calendar-hint { margin: 14px 0 0; color: var(--muted); font-size: 12px; }
+.calendar-side h3 { margin: 0 0 14px; font-size: 19px; text-transform: capitalize; }
+.calendar-event-list, .daily-agenda-list { display: flex; flex-direction: column; gap: 8px; }
+.calendar-event-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--soft-border); border-radius: 9px; }
+.calendar-event-content { display: flex; min-width: 0; flex-direction: column; gap: 4px; overflow-wrap: anywhere; }
+.calendar-event-meta { color: var(--muted); font-size: 12px; }
+.calendar-event-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px; }
+.calendar-link { padding: 4px 5px; color: #625be5; background: transparent; font-size: 11px; }
+.calendar-link-danger { color: var(--danger-text); }
+.calendar-link:hover { text-decoration: underline; }
+.calendar-empty { margin: 0; color: var(--muted); font-size: 13px; }
+.calendar-event-form { display: flex; flex-direction: column; gap: 8px; }
+.calendar-event-form > label:not(.calendar-annual), .calendar-form-row label { display: block; margin: 4px 0 5px; color: var(--muted); font-size: 12px; font-weight: 650; }
+.calendar-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.calendar-form-row > div { min-width: 0; }
+.calendar-annual { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+.calendar-annual input { width: 17px; height: 17px; accent-color: #4f46e5; }
+.calendar-form-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.daily-agenda-dialog { width: min(500px,calc(100% - 40px)); max-height: 80vh; overflow: auto; }
+.daily-agenda-dialog h3 { font-size: 23px; text-transform: capitalize; }
+.daily-agenda-list { margin-bottom: 20px; }
 @media (max-width:1000px) { .pomodoro-bar { grid-template-columns: 1fr auto 1.5fr; padding: 10px 12px; } .pomodoro-actions button { min-width: auto; padding-inline: 10px; } .view-tabs { padding-inline: 12px; } .workspace { padding: 10px 12px 12px; gap: 9px; } .panel { padding: 16px; } .statistics-page { padding: 10px 12px 12px; } .summary-grid { grid-template-columns: repeat(2,1fr); } .statistics-grid { grid-template-columns: 1fr; } }
+@media (max-width:1000px) { .calendar-page { padding: 10px 12px 12px; } .calendar-layout { grid-template-columns: minmax(420px,1.2fr) minmax(330px,.8fr); gap: 9px; } .calendar-card { padding: 14px; } .calendar-day { min-height: 72px; padding: 5px; } }

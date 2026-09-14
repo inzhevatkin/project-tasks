@@ -27,4 +27,18 @@ test("переносит старые проекты в тип Работа", ()
   const result = normalizeWorkspace([{ name: "Старый проект", tasks: [] }]);
   assert.equal(result.projectTypes[0].name, "Работа");
   assert.equal(result.projects[0].typeId, result.projectTypes[0].id);
+  assert.deepEqual(result.calendarEvents, []);
+});
+
+test("старый файл проектов сохраняет задачи при добавлении календаря", () => {
+  const old = {
+    version: 2,
+    projectTypes: [{ id: "home", name: "Дом" }],
+    projects: [{ id: "project", name: "Ремонт", typeId: "home", tasks: [{ id: "task", title: "Купить краску", comment: "Синюю", completed: false }] }]
+  };
+  const result = normalizeWorkspace(old);
+  assert.equal(result.version, 3);
+  assert.equal(result.projects[0].tasks[0].comment, "Синюю");
+  assert.equal(result.projectTypes[0].name, "Дом");
+  assert.deepEqual(result.calendarEvents, []);
 });

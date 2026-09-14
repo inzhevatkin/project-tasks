@@ -27,6 +27,7 @@
     <nav class="view-tabs" aria-label="Разделы приложения">
       <button id="show-tasks" class="view-tab selected" type="button">Задачи</button>
       <button id="show-statistics" class="view-tab" type="button">Статистика</button>
+      <button id="show-calendar" class="view-tab" type="button">Календарь</button>
       <div class="app-meta">
         <button id="show-about" class="about-button" type="button">О программе</button>
       </div>
@@ -105,6 +106,48 @@
       </section>
     </main>
 
+    <main id="calendar-page" class="calendar-page" hidden>
+      <header class="calendar-header">
+        <div><p class="eyebrow">СОБЫТИЯ И ПЛАНЫ</p><h2>Календарь</h2></div>
+        <button id="calendar-today" class="secondary" type="button">Сегодня</button>
+      </header>
+      <div class="calendar-layout">
+        <section class="calendar-card" aria-label="Календарь по месяцам">
+          <div class="calendar-toolbar">
+            <button id="calendar-prev" class="secondary" type="button" aria-label="Предыдущий месяц">←</button>
+            <h3 id="calendar-month"></h3>
+            <button id="calendar-next" class="secondary" type="button" aria-label="Следующий месяц">→</button>
+          </div>
+          <div class="calendar-weekdays" aria-hidden="true">
+            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+          </div>
+          <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="Дни месяца"></div>
+          <p class="calendar-hint">Выберите день, чтобы увидеть его события или добавить новое.</p>
+        </section>
+        <aside class="calendar-card calendar-side">
+          <h3 id="calendar-selected-title">План на день</h3>
+          <div id="calendar-event-list" class="calendar-event-list"></div>
+          <p id="calendar-empty" class="calendar-empty">На этот день событий нет.</p>
+          <div class="section-divider"></div>
+          <h3 id="calendar-form-title">Новое событие</h3>
+          <form id="calendar-event-form" class="calendar-event-form">
+            <label for="calendar-title">Название</label>
+            <input id="calendar-title" required maxlength="120" autocomplete="off" placeholder="Например, день рождения" />
+            <div class="calendar-form-row">
+              <div><label for="calendar-date">Дата</label><input id="calendar-date" type="date" required /></div>
+              <div><label for="calendar-time">Время (необязательно)</label><input id="calendar-time" type="time" /></div>
+            </div>
+            <label class="calendar-annual"><input id="calendar-annual" type="checkbox" /><span>Повторять каждый год</span></label>
+            <div class="calendar-form-actions">
+              <button id="calendar-submit" class="primary" type="submit">Добавить событие</button>
+              <button id="calendar-cancel" class="secondary" type="button" hidden>Отмена</button>
+            </div>
+          </form>
+          <p id="calendar-save-status" class="save-status" role="status"></p>
+        </aside>
+      </div>
+    </main>
+
     <dialog id="confirm-dialog">
       <form method="dialog">
         <h3 id="confirm-title">Подтвердите удаление</h3>
@@ -113,6 +156,15 @@
           <button value="cancel" class="secondary">Отмена</button>
           <button value="confirm" class="danger">Удалить</button>
         </div>
+      </form>
+    </dialog>
+    <dialog id="daily-agenda-dialog" class="daily-agenda-dialog">
+      <form method="dialog">
+        <p class="eyebrow">ПЛАН НА ДЕНЬ</p>
+        <h3 id="daily-agenda-title">Сегодня</h3>
+        <p>События, запланированные на сегодня:</p>
+        <div id="daily-agenda-list" class="daily-agenda-list"></div>
+        <div class="dialog-actions"><button value="close" class="primary">Понятно</button></div>
       </form>
     </dialog>
     <dialog id="about-dialog" class="about-dialog">

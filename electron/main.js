@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createWorkspaceStore } from "./workspace-store.js";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
@@ -10,6 +10,14 @@ const isSmokeTest = process.env.PROJECT_TASKS_SMOKE_TEST === "1";
 if (isSmokeTest) {
   const testData = mkdtempSync(join(tmpdir(), "project-tasks-smoke-"));
   app.setPath("userData", testData);
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  writeFileSync(join(testData, "projects.json"), JSON.stringify({
+    version: 2,
+    projectTypes: [{ id: "work", name: "Работа" }],
+    projects: [{ id: "smoke-project", name: "Проверочный проект", typeId: "work", tasks: [] }],
+    calendarEvents: [{ id: "smoke-event", title: "Утреннее событие", date: today, time: "10:00", annual: false }]
+  }));
   app.on("quit", () => {
     try { rmSync(testData, { recursive: true, force: true }); }
     catch (error) { console.warn("Temporary test data cleanup:", error.message); }
@@ -37,6 +45,14 @@ function createWindow() {
           const deadline = Date.now() + 5000;
           const check = () => {
             if (document.documentElement.dataset.ready === "true") {
+              if (!document.querySelector("#daily-agenda-dialog").open
+                || !document.querySelector("#daily-agenda-list").textContent.includes("Утреннее событие")) {
+                return reject(new Error("Daily agenda was not shown on startup"));
+              }
+              document.querySelector("#daily-agenda-dialog").close();
+              if (!document.querySelector("#project-list").textContent.includes("Проверочный проект")) {
+                return reject(new Error("Existing project disappeared during calendar migration"));
+              }
               document.querySelector("#show-about").click();
               if (!document.querySelector("#about-dialog").open) return reject(new Error("About dialog failed"));
               if (document.querySelector("#about-version").textContent !== "Версия ${app.getVersion()}") {
@@ -45,6 +61,17 @@ function createWindow() {
               document.querySelector("#about-dialog").close();
               document.querySelector("#show-statistics").click();
               if (document.querySelector("#statistics-page").hidden) return reject(new Error("Statistics navigation failed"));
+              document.querySelector("#show-calendar").click();
+              if (document.querySelector("#calendar-page").hidden || !document.querySelector("#calendar-grid").children.length) {
+                return reject(new Error("Calendar navigation failed"));
+              }
+              document.querySelector("#calendar-title").value = "Проверочное событие";
+              document.querySelector("#calendar-time").value = "09:15";
+              document.querySelector("#calendar-event-form").requestSubmit();
+              if (!document.querySelector("#calendar-event-list").textContent.includes("Проверочное событие")) {
+                return reject(new Error("Calendar event was not added"));
+              }
+              if (document.querySelector("#daily-agenda-dialog").open) return reject(new Error("Daily agenda was repeated"));
               document.querySelector("#show-tasks").click();
               return resolve(true);
             }
@@ -53,7 +80,7 @@ function createWindow() {
           };
           check();
         })`);
-        console.log("ProjectTasks modules initialized; page navigation passed");
+        console.log("ProjectTasks modules initialized; calendar and daily agenda passed");
         app.quit();
       } catch (error) {
         console.error(error);

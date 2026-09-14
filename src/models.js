@@ -1,3 +1,5 @@
+import { normalizeCalendarEvents } from "./calendar.js";
+
 export const DEFAULT_PROJECT_TYPE_ID = "work";
 
 export function createProjectType(name) {
@@ -37,7 +39,7 @@ export function normalizeWorkspace(value) {
     tasks: Array.isArray(project.tasks) ? project.tasks.filter(isObject).map(normalizeTask) : []
   }));
 
-  return { version: 2, projectTypes, projects };
+  return { version: 3, projectTypes, projects, calendarEvents: normalizeCalendarEvents(isLegacy ? [] : value?.calendarEvents) };
 }
 
 function normalizeTypes(value) {

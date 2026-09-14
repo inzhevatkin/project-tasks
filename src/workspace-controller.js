@@ -3,7 +3,7 @@ import { textSpan } from "./ui/dom.js";
 
 export function createWorkspaceController(elements) {
   const state = {
-    projectTypes: [], projects: [], selectedTypeId: null,
+    projectTypes: [], projects: [], calendarEvents: [], selectedTypeId: null,
     selectedProjectId: null, selectedTaskId: null, saveTimer: null
   };
   const selectedType = () => state.projectTypes.find((type) => type.id === state.selectedTypeId) ?? null;
@@ -100,14 +100,22 @@ export function createWorkspaceController(elements) {
   function scheduleSave() {
     clearTimeout(state.saveTimer);
     elements.saveStatus.textContent = "Сохранение…";
+    elements.calendarSaveStatus.textContent = "Сохранение…";
     elements.saveStatus.classList.remove("error");
+    elements.calendarSaveStatus.classList.remove("error");
     state.saveTimer = setTimeout(async () => {
       try {
-        await window.projectTasks.save({ version: 2, projectTypes: state.projectTypes, projects: state.projects });
+        await window.projectTasks.save({
+          version: 3, projectTypes: state.projectTypes, projects: state.projects,
+          calendarEvents: state.calendarEvents
+        });
         elements.saveStatus.textContent = "Все изменения сохранены";
+        elements.calendarSaveStatus.textContent = "Все изменения сохранены";
       } catch (error) {
         elements.saveStatus.textContent = "Не удалось сохранить изменения";
+        elements.calendarSaveStatus.textContent = "Не удалось сохранить изменения";
         elements.saveStatus.classList.add("error");
+        elements.calendarSaveStatus.classList.add("error");
         console.error(error);
       }
     }, 300);
@@ -237,6 +245,7 @@ export function createWorkspaceController(elements) {
     const workspace = normalizeWorkspace(stored);
     state.projectTypes = workspace.projectTypes;
     state.projects = workspace.projects;
+    state.calendarEvents = workspace.calendarEvents;
     state.selectedTypeId = state.projectTypes[0]?.id ?? null;
     state.selectedProjectId = projectsForSelectedType()[0]?.id ?? null;
     state.selectedTaskId = selectedProject()?.tasks[0]?.id ?? null;
@@ -244,5 +253,10 @@ export function createWorkspaceController(elements) {
     if (Array.isArray(stored)) await window.projectTasks.save(workspace);
 
   }
-  return { initialize };
+  return {
+    initialize,
+    getCalendarEvents: () => state.calendarEvents,
+    setCalendarEvents(events) { state.calendarEvents = events; scheduleSave(); },
+    confirmDeletion: askToDelete
+  };
 }
