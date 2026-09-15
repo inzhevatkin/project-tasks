@@ -4,7 +4,7 @@ import { textSpan } from "./ui/dom.js";
 export function createWorkspaceController(elements) {
   const state = {
     projectTypes: [], projects: [], calendarEvents: [], selectedTypeId: null,
-    selectedProjectId: null, selectedTaskId: null, saveTimer: null
+    selectedProjectId: null, selectedTaskId: null, saveTimer: null, lastListClick: null
   };
   const selectedType = () => state.projectTypes.find((type) => type.id === state.selectedTypeId) ?? null;
   const projectsForSelectedType = () => state.projects.filter((project) => project.typeId === state.selectedTypeId);
@@ -148,6 +148,15 @@ export function createWorkspaceController(elements) {
     });
   }
 
+  function isSecondClick(kind, id, event) {
+    if (event.detail === 0) return false;
+    const clickedAt = Date.now();
+    const previous = state.lastListClick;
+    const second = event.detail >= 2 || (previous?.kind === kind && previous.id === id && clickedAt - previous.clickedAt <= 800);
+    state.lastListClick = second ? null : { kind, id, clickedAt };
+    return second;
+  }
+
   elements.renameCancel.addEventListener("click", () => elements.renameDialog.close("cancel"));
 
   elements.typeForm.addEventListener("submit", (event) => {
@@ -161,15 +170,14 @@ export function createWorkspaceController(elements) {
     scheduleSave();
   });
 
-  elements.typeList.addEventListener("click", (event) => {
-    const item = event.target.closest("[data-type-id]");
-    if (item) selectType(item.dataset.typeId);
-  });
-
-  elements.typeList.addEventListener("dblclick", async (event) => {
+  elements.typeList.addEventListener("click", async (event) => {
     const item = event.target.closest("[data-type-id]");
     const type = state.projectTypes.find((candidate) => candidate.id === item?.dataset.typeId);
     if (!type) return;
+    if (!isSecondClick("type", type.id, event)) {
+      selectType(type.id);
+      return;
+    }
     const name = await askToRename("Переименовать раздел", type.name);
     if (!name || name === type.name) return;
     type.name = name;
@@ -189,15 +197,14 @@ export function createWorkspaceController(elements) {
     scheduleSave();
   });
 
-  elements.projectList.addEventListener("click", (event) => {
-    const item = event.target.closest("[data-id]");
-    if (item) selectProject(item.dataset.id);
-  });
-
-  elements.projectList.addEventListener("dblclick", async (event) => {
+  elements.projectList.addEventListener("click", async (event) => {
     const item = event.target.closest("[data-id]");
     const project = state.projects.find((candidate) => candidate.id === item?.dataset.id);
     if (!project) return;
+    if (!isSecondClick("project", project.id, event)) {
+      selectProject(project.id);
+      return;
+    }
     const name = await askToRename("Переименовать проект", project.name);
     if (!name || name === project.name) return;
     project.name = name;
@@ -230,22 +237,20 @@ export function createWorkspaceController(elements) {
     scheduleSave();
   });
 
-  elements.taskList.addEventListener("click", (event) => {
-    const item = event.target.closest("[data-id]");
-    if (item) selectTask(item.dataset.id);
-  });
-
-  elements.taskList.addEventListener("dblclick", (event) => {
+  elements.taskList.addEventListener("click", async (event) => {
     const item = event.target.closest("[data-id]");
     const task = selectedProject()?.tasks.find((candidate) => candidate.id === item?.dataset.id);
     if (!task) return;
-    askToRename("Переименовать задачу", task.title).then((title) => {
-      if (!title || title === task.title) return;
-      task.title = title;
-      state.selectedTaskId = task.id;
-      render();
-      scheduleSave();
-    });
+    if (!isSecondClick("task", task.id, event)) {
+      selectTask(task.id);
+      return;
+    }
+    const title = await askToRename("Переименовать задачу", task.title);
+    if (!title || title === task.title) return;
+    task.title = title;
+    state.selectedTaskId = task.id;
+    render();
+    scheduleSave();
   });
 
   elements.taskTitle.addEventListener("input", () => {

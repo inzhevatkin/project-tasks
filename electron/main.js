@@ -76,23 +76,24 @@ function createWindow() {
               }
               if (document.querySelector("#daily-agenda-dialog").open) return reject(new Error("Daily agenda was repeated"));
               document.querySelector("#show-tasks").click();
-              const rename = (target, name) => new Promise((renameResolve, renameReject) => {
-                target.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+              const rename = (selector, name) => new Promise((renameResolve, renameReject) => {
+                document.querySelector(selector).dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 1 }));
+                document.querySelector(selector).dispatchEvent(new MouseEvent("click", { bubbles: true, detail: 2 }));
                 const dialog = document.querySelector("#rename-dialog");
                 if (!dialog.open) return renameReject(new Error("Rename dialog failed"));
                 document.querySelector("#rename-input").value = name;
                 dialog.querySelector("form").requestSubmit(dialog.querySelector('[value="confirm"]'));
                 const renameDeadline = Date.now() + 2000;
                 const waitForRename = () => {
-                  if (target.ownerDocument.body.textContent.includes(name)) return renameResolve();
+                  if (document.body.textContent.includes(name)) return renameResolve();
                   if (Date.now() > renameDeadline) return renameReject(new Error("Rename failed: " + name));
                   setTimeout(waitForRename, 20);
                 };
                 waitForRename();
               });
-              rename(document.querySelector("#type-list [data-type-id]"), "Новый раздел")
-                .then(() => rename(document.querySelector("#project-list [data-id]"), "Новый проект"))
-                .then(() => rename(document.querySelector("#task-list [data-id]"), "Новая задача"))
+              rename("#type-list [data-type-id]", "Новый раздел")
+                .then(() => rename("#project-list [data-id]", "Новый проект"))
+                .then(() => rename("#task-list [data-id]", "Новая задача"))
                 .then(() => {
                   if (document.querySelector("#task-completed").checked) throw new Error("Rename changed task completion");
                   resolve(true);
