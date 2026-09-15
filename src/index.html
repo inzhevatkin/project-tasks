@@ -158,6 +158,17 @@
         </div>
       </form>
     </dialog>
+    <dialog id="rename-dialog" class="rename-dialog">
+      <form method="dialog">
+        <h3 id="rename-title">Переименовать</h3>
+        <label for="rename-input">Новое название</label>
+        <input id="rename-input" required maxlength="120" autocomplete="off" />
+        <div class="dialog-actions">
+          <button id="rename-cancel" type="button" class="secondary">Отмена</button>
+          <button value="confirm" class="primary">Сохранить</button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="daily-agenda-dialog" class="daily-agenda-dialog">
       <form method="dialog">
         <p class="eyebrow">ПЛАН НА ДЕНЬ</p>

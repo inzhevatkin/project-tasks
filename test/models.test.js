@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createProject, createProjectType, createTask, normalizeWorkspace } from "../src/models.js";
+import { createProject, createProjectType, createTask, itemName, normalizeWorkspace } from "../src/models.js";
 
 test("создаёт проект и задачу с нужными полями", () => {
   const type = createProjectType("  Дом  ");
@@ -41,4 +41,10 @@ test("старый файл проектов сохраняет задачи п�
   assert.equal(result.projects[0].tasks[0].comment, "Синюю");
   assert.equal(result.projectTypes[0].name, "Дом");
   assert.deepEqual(result.calendarEvents, []);
+});
+
+test("проверяет новое название при переименовании", () => {
+  assert.equal(itemName("  Новое название  "), "Новое название");
+  assert.equal(itemName("   "), null);
+  assert.equal(itemName(null), null);
 });

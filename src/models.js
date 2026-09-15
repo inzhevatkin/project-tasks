@@ -20,6 +20,10 @@ export function createTask(title) {
   };
 }
 
+export function itemName(value) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 export function normalizeWorkspace(value) {
   const isLegacy = Array.isArray(value);
   const rawProjects = isLegacy ? value : value?.projects;

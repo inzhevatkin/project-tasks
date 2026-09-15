@@ -1,4 +1,4 @@
-import { createProject, createProjectType, createTask, normalizeWorkspace } from "./models.js";
+import { createProject, createProjectType, createTask, itemName, normalizeWorkspace } from "./models.js";
 import { textSpan } from "./ui/dom.js";
 
 export function createWorkspaceController(elements) {
@@ -20,6 +20,7 @@ export function createWorkspaceController(elements) {
       button.dataset.typeId = type.id;
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", String(type.id === state.selectedTypeId));
+      button.title = "Дважды щёлкните, чтобы переименовать раздел";
       button.append(textSpan(type.name, "type-name"), textSpan(String(count), "type-count"));
       return button;
     }));
@@ -35,6 +36,7 @@ export function createWorkspaceController(elements) {
       button.dataset.id = project.id;
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", String(project.id === state.selectedProjectId));
+      button.title = "Дважды щёлкните, чтобы переименовать проект";
       button.append(textSpan(project.name, "item-title"), textSpan(`${project.tasks.length} задач`, "item-meta"));
       return button;
     }));
@@ -53,6 +55,7 @@ export function createWorkspaceController(elements) {
       button.dataset.id = task.id;
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", String(task.id === state.selectedTaskId));
+      button.title = "Дважды щёлкните, чтобы переименовать задачу";
       button.append(
         textSpan(task.completed ? "✓" : "○", "task-state"),
         textSpan(task.title, "item-title"),
@@ -130,6 +133,23 @@ export function createWorkspaceController(elements) {
     });
   }
 
+  function askToRename(title, currentName) {
+    elements.renameTitle.textContent = title;
+    elements.renameInput.value = currentName;
+    elements.renameDialog.returnValue = "";
+    elements.renameDialog.showModal();
+    elements.renameInput.focus();
+    elements.renameInput.select();
+    return new Promise((resolve) => {
+      elements.renameDialog.addEventListener("close", () => {
+        const name = itemName(elements.renameInput.value);
+        resolve(elements.renameDialog.returnValue === "confirm" ? name : null);
+      }, { once: true });
+    });
+  }
+
+  elements.renameCancel.addEventListener("click", () => elements.renameDialog.close("cancel"));
+
   elements.typeForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const name = elements.typeInput.value.trim();
@@ -144,6 +164,17 @@ export function createWorkspaceController(elements) {
   elements.typeList.addEventListener("click", (event) => {
     const item = event.target.closest("[data-type-id]");
     if (item) selectType(item.dataset.typeId);
+  });
+
+  elements.typeList.addEventListener("dblclick", async (event) => {
+    const item = event.target.closest("[data-type-id]");
+    const type = state.projectTypes.find((candidate) => candidate.id === item?.dataset.typeId);
+    if (!type) return;
+    const name = await askToRename("Переименовать раздел", type.name);
+    if (!name || name === type.name) return;
+    type.name = name;
+    render();
+    scheduleSave();
   });
 
   elements.projectForm.addEventListener("submit", (event) => {
@@ -161,6 +192,17 @@ export function createWorkspaceController(elements) {
   elements.projectList.addEventListener("click", (event) => {
     const item = event.target.closest("[data-id]");
     if (item) selectProject(item.dataset.id);
+  });
+
+  elements.projectList.addEventListener("dblclick", async (event) => {
+    const item = event.target.closest("[data-id]");
+    const project = state.projects.find((candidate) => candidate.id === item?.dataset.id);
+    if (!project) return;
+    const name = await askToRename("Переименовать проект", project.name);
+    if (!name || name === project.name) return;
+    project.name = name;
+    render();
+    scheduleSave();
   });
 
   elements.deleteProject.addEventListener("click", async () => {
@@ -197,10 +239,13 @@ export function createWorkspaceController(elements) {
     const item = event.target.closest("[data-id]");
     const task = selectedProject()?.tasks.find((candidate) => candidate.id === item?.dataset.id);
     if (!task) return;
-    task.completed = !task.completed;
-    state.selectedTaskId = task.id;
-    render();
-    scheduleSave();
+    askToRename("Переименовать задачу", task.title).then((title) => {
+      if (!title || title === task.title) return;
+      task.title = title;
+      state.selectedTaskId = task.id;
+      render();
+      scheduleSave();
+    });
   });
 
   elements.taskTitle.addEventListener("input", () => {

@@ -15,7 +15,10 @@ if (isSmokeTest) {
   writeFileSync(join(testData, "projects.json"), JSON.stringify({
     version: 2,
     projectTypes: [{ id: "work", name: "Работа" }],
-    projects: [{ id: "smoke-project", name: "Проверочный проект", typeId: "work", tasks: [] }],
+    projects: [{
+      id: "smoke-project", name: "Проверочный проект", typeId: "work",
+      tasks: [{ id: "smoke-task", title: "Проверочная задача", comment: "", completed: false }]
+    }],
     calendarEvents: [{ id: "smoke-event", title: "Утреннее событие", date: today, time: "10:00", annual: false }]
   }));
   app.on("quit", () => {
@@ -73,14 +76,35 @@ function createWindow() {
               }
               if (document.querySelector("#daily-agenda-dialog").open) return reject(new Error("Daily agenda was repeated"));
               document.querySelector("#show-tasks").click();
-              return resolve(true);
+              const rename = (target, name) => new Promise((renameResolve, renameReject) => {
+                target.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+                const dialog = document.querySelector("#rename-dialog");
+                if (!dialog.open) return renameReject(new Error("Rename dialog failed"));
+                document.querySelector("#rename-input").value = name;
+                dialog.querySelector("form").requestSubmit(dialog.querySelector('[value="confirm"]'));
+                const renameDeadline = Date.now() + 2000;
+                const waitForRename = () => {
+                  if (target.ownerDocument.body.textContent.includes(name)) return renameResolve();
+                  if (Date.now() > renameDeadline) return renameReject(new Error("Rename failed: " + name));
+                  setTimeout(waitForRename, 20);
+                };
+                waitForRename();
+              });
+              rename(document.querySelector("#type-list [data-type-id]"), "Новый раздел")
+                .then(() => rename(document.querySelector("#project-list [data-id]"), "Новый проект"))
+                .then(() => rename(document.querySelector("#task-list [data-id]"), "Новая задача"))
+                .then(() => {
+                  if (document.querySelector("#task-completed").checked) throw new Error("Rename changed task completion");
+                  resolve(true);
+                }, reject);
+              return;
             }
             if (Date.now() > deadline) return reject(new Error("Renderer initialization timed out"));
             setTimeout(check, 50);
           };
           check();
         })`);
-        console.log("ProjectTasks modules initialized; calendar and daily agenda passed");
+        console.log("ProjectTasks modules initialized; calendar, daily agenda, and rename passed");
         app.quit();
       } catch (error) {
         console.error(error);

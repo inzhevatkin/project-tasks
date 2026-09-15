@@ -119,6 +119,8 @@ dialog p { margin: 0 0 22px; color: var(--muted); }
 .about-dialog h3 { margin-top: 5px; font-size: 24px; }
 .about-dialog .about-version { color: var(--text); font-weight: 700; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.rename-dialog label { display: block; margin: 16px 0 7px; color: var(--muted); font-size: 13px; font-weight: 650; }
+.rename-dialog input { margin-bottom: 20px; }
 .statistics-page { flex: 1; min-height: 0; padding: 14px 22px 22px; overflow: auto; }
 .statistics-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 14px; }
 .statistics-header h2 { margin-bottom: 0; }
