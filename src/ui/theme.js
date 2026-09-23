@@ -3,7 +3,7 @@ export function initializeTheme(elements) {
     const isDark = theme === "dark";
     document.documentElement.dataset.theme = theme;
     elements.themeToggle.querySelector("span").textContent = isDark ? "☀️" : "🌙";
-    const label = isDark ? "Включить светлую тему" : "Включить тёмную тему";
+    const label = t(isDark ? "Включить светлую тему" : "Включить тёмную тему");
     elements.themeToggle.setAttribute("aria-label", label);
     elements.themeToggle.title = label;
   }
@@ -24,3 +24,4 @@ export function initializeTheme(elements) {
 
   applyTheme(initialTheme());
 }
+import { t } from "../i18n.js";

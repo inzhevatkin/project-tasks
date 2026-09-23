@@ -1,7 +1,7 @@
 {
   "name": "project-tasks",
   "productName": "Мои проекты",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Кроссплатформенный менеджер проектов и задач",
   "main": "electron/main.js",
   "scripts": {
@@ -36,7 +36,14 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+      "createDesktopShortcut": true,
+      "multiLanguageInstaller": true,
+      "displayLanguageSelector": true,
+      "installerLanguages": [
+        "ru_RU",
+        "en_US",
+        "zh_CN"
+      ]
     },
     "linux": {
       "icon": "assets/icon.png"

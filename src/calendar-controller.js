@@ -1,8 +1,9 @@
 import { createCalendarEvent, eventsOnDate, localDateKey, monthDates } from "./calendar.js";
+import { intlLocale, t } from "./i18n.js";
 
 const AGENDA_DATE_KEY = "projectTasks.lastDailyAgendaDate";
-const dateFormatter = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-const monthFormatter = new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" });
+const formatDate = (date) => new Intl.DateTimeFormat(intlLocale(), { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(date);
+const formatMonth = (date) => new Intl.DateTimeFormat(intlLocale(), { month: "long", year: "numeric" }).format(date);
 
 function dateFromKey(key) {
   const [year, month, day] = key.split("-").map(Number);
@@ -18,13 +19,13 @@ function eventRow(event, editable = false) {
   title.textContent = event.title;
   const meta = document.createElement("span");
   meta.className = "calendar-event-meta";
-  meta.textContent = `${event.time || "Весь день"}${event.annual ? " · Каждый год" : ""}`;
+  meta.textContent = `${event.time || t("Весь день")}${event.annual ? ` · ${t("Каждый год")}` : ""}`;
   content.append(title, meta);
   row.append(content);
   if (editable) {
     const actions = document.createElement("div");
     actions.className = "calendar-event-actions";
-    for (const [action, label] of [["edit", "Изменить"], ["delete", "Удалить"]]) {
+    for (const [action, label] of [["edit", t("Изменить")], ["delete", t("Удалить")]]) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = action === "delete" ? "calendar-link calendar-link-danger" : "calendar-link";
@@ -49,7 +50,7 @@ export function createCalendarController(elements, workspace, { now = () => new 
     const year = visibleMonth.getFullYear();
     const month = visibleMonth.getMonth();
     const today = localDateKey(now());
-    elements.calendarMonth.textContent = monthFormatter.format(visibleMonth);
+    elements.calendarMonth.textContent = formatMonth(visibleMonth);
     elements.calendarGrid.replaceChildren(...monthDates(year, month).map((date) => {
       const day = document.createElement("button");
       day.type = "button";
@@ -60,7 +61,7 @@ export function createCalendarController(elements, workspace, { now = () => new 
       day.dataset.date = date;
       day.setAttribute("role", "gridcell");
       day.setAttribute("aria-selected", String(date === selectedDate));
-      day.setAttribute("aria-label", dateFormatter.format(dateFromKey(date)));
+      day.setAttribute("aria-label", formatDate(dateFromKey(date)));
       const number = document.createElement("span");
       number.className = "calendar-day-number";
       number.textContent = String(Number(date.slice(-2)));
@@ -69,7 +70,7 @@ export function createCalendarController(elements, workspace, { now = () => new 
       if (events.length) {
         const preview = document.createElement("span");
         preview.className = "calendar-day-event";
-        preview.textContent = events.length === 1 ? events[0].title : `${events.length} события`;
+        preview.textContent = events.length === 1 ? events[0].title : t("{count} события", { count: events.length });
         day.append(preview);
       }
       return day;
@@ -77,7 +78,7 @@ export function createCalendarController(elements, workspace, { now = () => new 
   }
 
   function renderSelectedDay() {
-    elements.calendarSelectedTitle.textContent = dateFormatter.format(dateFromKey(selectedDate));
+    elements.calendarSelectedTitle.textContent = formatDate(dateFromKey(selectedDate));
     const events = eventsOnDate(workspace.getCalendarEvents(), selectedDate);
     elements.calendarEventList.replaceChildren(...events.map((event) => eventRow(event, true)));
     elements.calendarEmpty.hidden = events.length > 0;
@@ -92,8 +93,8 @@ export function createCalendarController(elements, workspace, { now = () => new 
     editingId = null;
     elements.calendarEventForm.reset();
     elements.calendarDate.value = selectedDate;
-    elements.calendarFormTitle.textContent = "Новое событие";
-    elements.calendarSubmit.textContent = "Добавить событие";
+    elements.calendarFormTitle.textContent = t("Новое событие");
+    elements.calendarSubmit.textContent = t("Добавить событие");
     elements.calendarCancel.hidden = true;
   }
 
@@ -115,7 +116,7 @@ export function createCalendarController(elements, workspace, { now = () => new 
     if (localStorage.getItem(AGENDA_DATE_KEY) === today || document.querySelector("dialog[open]")) return;
     const events = eventsOnDate(workspace.getCalendarEvents(), today);
     if (!events.length) return;
-    elements.dailyAgendaTitle.textContent = dateFormatter.format(dateFromKey(today));
+    elements.dailyAgendaTitle.textContent = formatDate(dateFromKey(today));
     elements.dailyAgendaList.replaceChildren(...events.map((event) => eventRow(event)));
     elements.dailyAgendaDialog.showModal();
     localStorage.setItem(AGENDA_DATE_KEY, today);
@@ -153,7 +154,7 @@ export function createCalendarController(elements, workspace, { now = () => new 
       selectDate(item.annual && item.date.slice(5) === selectedDate.slice(5) ? selectedDate : item.date);
       checkDailyAgenda();
     } catch (error) {
-      elements.calendarSaveStatus.textContent = error.message;
+      elements.calendarSaveStatus.textContent = t(error.message);
       elements.calendarSaveStatus.classList.add("error");
     }
   });
@@ -169,12 +170,12 @@ export function createCalendarController(elements, workspace, { now = () => new 
       elements.calendarDate.value = item.date;
       elements.calendarTime.value = item.time;
       elements.calendarAnnual.checked = item.annual;
-      elements.calendarFormTitle.textContent = "Изменить событие";
-      elements.calendarSubmit.textContent = "Сохранить изменения";
+      elements.calendarFormTitle.textContent = t("Изменить событие");
+      elements.calendarSubmit.textContent = t("Сохранить изменения");
       elements.calendarCancel.hidden = false;
       elements.calendarTitle.focus();
     } else if (action.dataset.action === "delete"
-      && await workspace.confirmDeletion("Удалить событие?", `Событие «${item.title}» будет удалено.`)) {
+      && await workspace.confirmDeletion(t("Удалить событие?"), t("Событие «{name}» будет удалено.", { name: item.title }))) {
       workspace.setCalendarEvents(workspace.getCalendarEvents().filter((candidate) => candidate.id !== item.id));
       if (editingId === item.id) resetForm();
       render();

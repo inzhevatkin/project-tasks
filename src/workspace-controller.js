@@ -1,5 +1,6 @@
 import { createProject, createProjectType, createTask, itemName, normalizeWorkspace } from "./models.js";
 import { textSpan } from "./ui/dom.js";
+import { t } from "./i18n.js";
 
 export function createWorkspaceController(elements) {
   const state = {
@@ -10,6 +11,8 @@ export function createWorkspaceController(elements) {
   const projectsForSelectedType = () => state.projects.filter((project) => project.typeId === state.selectedTypeId);
   const selectedProject = () => state.projects.find((project) => project.id === state.selectedProjectId) ?? null;
   const selectedTask = () => selectedProject()?.tasks.find((task) => task.id === state.selectedTaskId) ?? null;
+  const displayTypeName = (type) => type.id === "work" && type.name === "Работа" ? t("Работа") : type.name;
+  const displayName = (name) => name === "Без названия" ? t(name) : name;
 
   function renderTypes() {
     elements.typeList.replaceChildren(...state.projectTypes.map((type) => {
@@ -20,11 +23,11 @@ export function createWorkspaceController(elements) {
       button.dataset.typeId = type.id;
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", String(type.id === state.selectedTypeId));
-      button.title = "Дважды щёлкните, чтобы переименовать раздел";
-      button.append(textSpan(type.name, "type-name"), textSpan(String(count), "type-count"));
+      button.title = t("Дважды щёлкните, чтобы переименовать раздел");
+      button.append(textSpan(displayTypeName(type), "type-name"), textSpan(String(count), "type-count"));
       return button;
     }));
-    elements.typeTitle.textContent = selectedType()?.name ?? "Выберите раздел";
+    elements.typeTitle.textContent = selectedType() ? displayTypeName(selectedType()) : t("Выберите раздел");
     elements.projectInput.disabled = !selectedType();
   }
 
@@ -36,8 +39,8 @@ export function createWorkspaceController(elements) {
       button.dataset.id = project.id;
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", String(project.id === state.selectedProjectId));
-      button.title = "Дважды щёлкните, чтобы переименовать проект";
-      button.append(textSpan(project.name, "item-title"), textSpan(`${project.tasks.length} задач`, "item-meta"));
+      button.title = t("Дважды щёлкните, чтобы переименовать проект");
+      button.append(textSpan(displayName(project.name), "item-title"), textSpan(t("{count} задач", { count: project.tasks.length }), "item-meta"));
       return button;
     }));
     elements.deleteProject.disabled = !selectedProject();
@@ -45,7 +48,7 @@ export function createWorkspaceController(elements) {
 
   function renderTasks() {
     const project = selectedProject();
-    elements.projectTitle.textContent = project?.name ?? "Выберите проект";
+    elements.projectTitle.textContent = project ? displayName(project.name) : t("Выберите проект");
     elements.taskInput.disabled = !project;
     elements.addTask.disabled = !project;
     elements.taskList.replaceChildren(...(project?.tasks ?? []).map((task) => {
@@ -55,11 +58,11 @@ export function createWorkspaceController(elements) {
       button.dataset.id = task.id;
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", String(task.id === state.selectedTaskId));
-      button.title = "Дважды щёлкните, чтобы переименовать задачу";
+      button.title = t("Дважды щёлкните, чтобы переименовать задачу");
       button.append(
         textSpan(task.completed ? "✓" : "○", "task-state"),
-        textSpan(task.title, "item-title"),
-        textSpan(task.comment.trim() ? "Комментарий" : "", "note-badge")
+        textSpan(displayName(task.title), "item-title"),
+        textSpan(task.comment.trim() ? t("Комментарий") : "", "note-badge")
       );
       return button;
     }));
@@ -102,8 +105,8 @@ export function createWorkspaceController(elements) {
 
   function scheduleSave() {
     clearTimeout(state.saveTimer);
-    elements.saveStatus.textContent = "Сохранение…";
-    elements.calendarSaveStatus.textContent = "Сохранение…";
+    elements.saveStatus.textContent = t("Сохранение…");
+    elements.calendarSaveStatus.textContent = t("Сохранение…");
     elements.saveStatus.classList.remove("error");
     elements.calendarSaveStatus.classList.remove("error");
     state.saveTimer = setTimeout(async () => {
@@ -113,11 +116,11 @@ export function createWorkspaceController(elements) {
           version: 3, projectTypes: state.projectTypes, projects: state.projects,
           calendarEvents: state.calendarEvents
         });
-        elements.saveStatus.textContent = "Все изменения сохранены";
-        elements.calendarSaveStatus.textContent = "Все изменения сохранены";
+        elements.saveStatus.textContent = t("Все изменения сохранены");
+        elements.calendarSaveStatus.textContent = t("Все изменения сохранены");
       } catch (error) {
-        elements.saveStatus.textContent = "Не удалось сохранить изменения";
-        elements.calendarSaveStatus.textContent = "Не удалось сохранить изменения";
+        elements.saveStatus.textContent = t("Не удалось сохранить изменения");
+        elements.calendarSaveStatus.textContent = t("Не удалось сохранить изменения");
         elements.saveStatus.classList.add("error");
         elements.calendarSaveStatus.classList.add("error");
         console.error(error);
@@ -132,8 +135,8 @@ export function createWorkspaceController(elements) {
       version: 3, projectTypes: state.projectTypes, projects: state.projects,
       calendarEvents: state.calendarEvents
     });
-    elements.saveStatus.textContent = "Все изменения сохранены";
-    elements.calendarSaveStatus.textContent = "Все изменения сохранены";
+    elements.saveStatus.textContent = t("Все изменения сохранены");
+    elements.calendarSaveStatus.textContent = t("Все изменения сохранены");
   }
 
   function askToDelete(title, message) {
@@ -190,7 +193,7 @@ export function createWorkspaceController(elements) {
       selectType(type.id);
       return;
     }
-    const name = await askToRename("Переименовать раздел", type.name);
+    const name = await askToRename(t("Переименовать раздел"), displayTypeName(type));
     if (!name || name === type.name) return;
     type.name = name;
     render();
@@ -217,7 +220,7 @@ export function createWorkspaceController(elements) {
       selectProject(project.id);
       return;
     }
-    const name = await askToRename("Переименовать проект", project.name);
+    const name = await askToRename(t("Переименовать проект"), project.name);
     if (!name || name === project.name) return;
     project.name = name;
     render();
@@ -226,7 +229,7 @@ export function createWorkspaceController(elements) {
 
   elements.deleteProject.addEventListener("click", async () => {
     const project = selectedProject();
-    if (!project || !await askToDelete("Удалить проект?", `Проект «${project.name}» и все его задачи будут удалены.`)) return;
+    if (!project || !await askToDelete(t("Удалить проект?"), t("Проект «{name}» и все его задачи будут удалены.", { name: project.name }))) return;
     const visibleIndex = projectsForSelectedType().indexOf(project);
     state.projects.splice(state.projects.indexOf(project), 1);
     const remaining = projectsForSelectedType();
@@ -257,7 +260,7 @@ export function createWorkspaceController(elements) {
       selectTask(task.id);
       return;
     }
-    const title = await askToRename("Переименовать задачу", task.title);
+    const title = await askToRename(t("Переименовать задачу"), task.title);
     if (!title || title === task.title) return;
     task.title = title;
     state.selectedTaskId = task.id;
@@ -293,7 +296,7 @@ export function createWorkspaceController(elements) {
   elements.deleteTask.addEventListener("click", async () => {
     const project = selectedProject();
     const task = selectedTask();
-    if (!project || !task || !await askToDelete("Удалить задачу?", `Задача «${task.title}» будет удалена.`)) return;
+    if (!project || !task || !await askToDelete(t("Удалить задачу?"), t("Задача «{name}» будет удалена.", { name: task.title }))) return;
     const index = project.tasks.indexOf(task);
     project.tasks.splice(index, 1);
     state.selectedTaskId = project.tasks[Math.min(index, project.tasks.length - 1)]?.id ?? null;

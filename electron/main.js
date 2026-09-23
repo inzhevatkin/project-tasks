@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createWorkspaceStore } from "./workspace-store.js";
 import { initializeUpdates } from "./update-controller.js";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
@@ -43,6 +43,10 @@ function createWindow() {
   });
   window.loadFile(join(currentDirectory, "../src/index.html"));
   if (isSmokeTest) {
+    const smokeLocale = ["ru", "en", "zh"].includes(process.env.PROJECT_TASKS_SMOKE_LOCALE)
+      ? process.env.PROJECT_TASKS_SMOKE_LOCALE : "ru";
+    const versionLabel = { ru: "Версия", en: "Version", zh: "版本" }[smokeLocale];
+    const tasksLabel = { ru: "Задачи", en: "Tasks", zh: "任务" }[smokeLocale];
     window.webContents.once("did-finish-load", async () => {
       try {
         await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
@@ -59,7 +63,9 @@ function createWindow() {
               }
               document.querySelector("#show-about").click();
               if (!document.querySelector("#about-dialog").open) return reject(new Error("About dialog failed"));
-              if (document.querySelector("#about-version").textContent !== "Версия ${app.getVersion()}") {
+              if (document.documentElement.lang !== "${smokeLocale === "zh" ? "zh-CN" : smokeLocale}"
+                || document.querySelector("#show-tasks").textContent !== "${tasksLabel}"
+                || document.querySelector("#about-version").textContent !== "${versionLabel} ${app.getVersion()}") {
                 return reject(new Error("Application version was not rendered in About dialog"));
               }
               document.querySelector("#about-dialog").close();
@@ -117,6 +123,17 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  let locale = isSmokeTest && ["ru", "en", "zh"].includes(process.env.PROJECT_TASKS_SMOKE_LOCALE)
+    ? process.env.PROJECT_TASKS_SMOKE_LOCALE : "ru";
+  if (!isSmokeTest) {
+    try {
+      const saved = readFileSync(join(app.getPath("userData"), "installer-language.txt"), "utf8").trim();
+      locale = ["ru", "en", "zh"].includes(saved) ? saved : "ru";
+    } catch {
+      const systemLocale = app.getLocale().toLowerCase();
+      locale = systemLocale.startsWith("zh") ? "zh" : systemLocale.startsWith("en") ? "en" : "ru";
+    }
+  }
   initializeUpdates();
   const store = createWorkspaceStore(join(app.getPath("userData"), "projects.json"));
   ipcMain.on("pomodoro:progress", (event, state) => {
@@ -131,7 +148,7 @@ app.whenReady().then(() => {
   });
   ipcMain.handle("app:info", () => ({
     description: "Кроссплатформенный менеджер проектов и задач",
-    version: app.getVersion()
+    version: app.getVersion(), locale
   }));
   ipcMain.handle("projects:load", () => store.load());
   ipcMain.handle("projects:save", (_event, workspace) => store.save(workspace));

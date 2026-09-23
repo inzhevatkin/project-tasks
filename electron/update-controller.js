@@ -20,7 +20,7 @@ export function initializeUpdates() {
     if (state.status !== "available") return;
     publish({ status: "downloading", progress: 0, message: "Загрузка обновления…" });
     try { await autoUpdater.downloadUpdate(); }
-    catch (error) { publish({ status: "error", message: `Не удалось загрузить обновление: ${error.message}` }); }
+    catch (error) { publish({ status: "error", error: error.message, message: `Не удалось загрузить обновление: ${error.message}` }); }
   });
   if (!app.isPackaged || process.platform !== "win32" || process.env.PROJECT_TASKS_SMOKE_TEST === "1") return;
 
@@ -30,13 +30,13 @@ export function initializeUpdates() {
   autoUpdater.on("update-not-available", () => publish({ status: "current", version: null, message: "Установлена последняя версия" }));
   autoUpdater.on("download-progress", (progress) => publish({ status: "downloading", progress: Math.round(progress.percent), message: `Загрузка: ${Math.round(progress.percent)} %` }));
   autoUpdater.on("update-downloaded", (info) => publish({ status: "ready", version: info.version, progress: 100, message: `Версия ${info.version} готова к установке` }));
-  autoUpdater.on("error", (error) => publish({ status: "error", message: `Ошибка обновления: ${error.message}` }));
+  autoUpdater.on("error", (error) => publish({ status: "error", error: error.message, message: `Ошибка обновления: ${error.message}` }));
 
   async function check() {
     if (state.status === "downloading" || state.status === "ready" || state.status === "installing") return;
     publish({ status: "checking", message: "Проверка обновлений…" });
     try { await autoUpdater.checkForUpdates(); }
-    catch (error) { publish({ status: "error", message: `Не удалось проверить обновления: ${error.message}` }); }
+    catch (error) { publish({ status: "error", error: error.message, message: `Не удалось проверить обновления: ${error.message}` }); }
   }
   setTimeout(check, 3000).unref();
   setInterval(check, CHECK_INTERVAL_MS).unref();

@@ -2,6 +2,7 @@ import { POMODORO_PHASES, durationFor, formatTime, nextPomodoroPhase, shouldAuto
 import { createPomodoroRun, finishPomodoroRun, normalizePomodoroHistory } from "./statistics.js";
 import { prepareAudio, playTimerChime } from "./ui/bell.js";
 import { renderStatistics as updateStatistics } from "./ui/statistics-view.js";
+import { t } from "./i18n.js";
 
 export function createPomodoroController(elements, { now = Date.now } = {}) {
   const POMODORO_STORAGE_KEY = "projectTasks.pomodoro";
@@ -95,16 +96,16 @@ export function createPomodoroController(elements, { now = Date.now } = {}) {
   function renderPomodoro() {
     const phase = POMODORO_PHASES[pomodoro.phase];
     const formatted = formatTime(pomodoro.secondsRemaining);
-    elements.pomodoroPhase.textContent = phase.label;
+    elements.pomodoroPhase.textContent = t(phase.label);
     elements.pomodoroTime.textContent = formatted;
     elements.pomodoroTime.dateTime = `PT${pomodoro.secondsRemaining}S`;
-    elements.pomodoroToggle.textContent = pomodoro.running ? "Пауза" : "Старт";
+    elements.pomodoroToggle.textContent = t(pomodoro.running ? "Пауза" : "Старт");
     elements.pomodoroRounds.replaceChildren(...Array.from({ length: 4 }, (_, index) => {
       const dot = document.createElement("span");
       dot.className = `pomodoro-dot${index < completedRoundsInCycle() ? " completed" : ""}`;
       return dot;
     }));
-    document.title = pomodoro.running ? `${formatted} · ${phase.label} — Мои проекты` : "Мои проекты";
+    document.title = pomodoro.running ? `${formatted} · ${t(phase.label)} — ${t("Мои проекты")}` : t("Мои проекты");
     const taskbarState = taskbarProgress(pomodoro);
     const taskbarKey = `${pomodoro.phase}:${pomodoro.secondsRemaining}:${pomodoro.running}:${pomodoro.activeRunId}`;
     if (taskbarKey !== lastTaskbarState) {
