@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createWorkspaceStore } from "./workspace-store.js";
+import { initializeUpdates } from "./update-controller.js";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -116,6 +117,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  initializeUpdates();
   const store = createWorkspaceStore(join(app.getPath("userData"), "projects.json"));
   ipcMain.on("pomodoro:progress", (event, state) => {
     const window = BrowserWindow.fromWebContents(event.sender);

@@ -61,6 +61,9 @@ button { cursor: pointer; }
 .view-tab:hover { color: var(--text); background: var(--surface); }
 .view-tab.selected { color: #fff; background: #4f46e5; }
 .app-meta { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.update-status { max-width: 245px; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.update-button { padding: 7px 11px; color: #fff; background: #4f46e5; font-size: 12px; }
+.update-button:disabled { color: var(--muted); background: var(--secondary-bg); cursor: default; }
 .about-button { padding: 7px 10px; color: var(--muted); background: transparent; font-size: 12px; }
 .about-button:hover { color: var(--text); background: var(--surface); }
 .workspace { display: grid; grid-template-columns: minmax(230px,.8fr) minmax(360px,1.45fr) minmax(290px,1fr); flex: 1; gap: 14px; min-height: 0; padding: 14px 22px 22px; }

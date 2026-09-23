@@ -107,6 +107,7 @@ export function createWorkspaceController(elements) {
     elements.saveStatus.classList.remove("error");
     elements.calendarSaveStatus.classList.remove("error");
     state.saveTimer = setTimeout(async () => {
+      state.saveTimer = null;
       try {
         await window.projectTasks.save({
           version: 3, projectTypes: state.projectTypes, projects: state.projects,
@@ -122,6 +123,17 @@ export function createWorkspaceController(elements) {
         console.error(error);
       }
     }, 300);
+  }
+
+  async function flushSave() {
+    clearTimeout(state.saveTimer);
+    state.saveTimer = null;
+    await window.projectTasks.save({
+      version: 3, projectTypes: state.projectTypes, projects: state.projects,
+      calendarEvents: state.calendarEvents
+    });
+    elements.saveStatus.textContent = "Все изменения сохранены";
+    elements.calendarSaveStatus.textContent = "Все изменения сохранены";
   }
 
   function askToDelete(title, message) {
@@ -305,6 +317,7 @@ export function createWorkspaceController(elements) {
   }
   return {
     initialize,
+    flushSave,
     getCalendarEvents: () => state.calendarEvents,
     setCalendarEvents(events) { state.calendarEvents = events; scheduleSave(); },
     confirmDeletion: askToDelete

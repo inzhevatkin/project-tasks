@@ -37,6 +37,8 @@ export const elements = {
   showStatistics: document.querySelector("#show-statistics"),
   showCalendar: document.querySelector("#show-calendar"),
   showAbout: document.querySelector("#show-about"),
+  updateButton: document.querySelector("#update-button"),
+  updateStatus: document.querySelector("#update-status"),
   aboutDialog: document.querySelector("#about-dialog"),
   aboutDescription: document.querySelector("#about-description"),
   aboutVersion: document.querySelector("#about-version"),

@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+node scripts/release-version.mjs --next
+git add package.json package-lock.json

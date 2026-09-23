@@ -1,17 +1,49 @@
 {
   "name": "project-tasks",
   "productName": "Мои проекты",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Кроссплатформенный менеджер проектов и задач",
   "main": "electron/main.js",
-  "scripts": { "start": "electron .", "test": "node --test" },
-  "devDependencies": { "electron": "44.2.0" },
-  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "dist:win": "electron-builder --win nsis --x64 --publish never",
+    "prepare": "node scripts/install-hooks.mjs"
+  },
+  "devDependencies": {
+    "electron": "44.2.0",
+    "electron-builder": "^26.15.3"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "private": true,
   "build": {
     "appId": "com.inzhevatkin.projecttasks",
-    "win": { "icon": "assets/icon.ico" },
-    "linux": { "icon": "assets/icon.png" }
+    "artifactName": "project-tasks-setup-${version}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "inzhevatkin",
+        "repo": "project-tasks"
+      }
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "linux": {
+      "icon": "assets/icon.png"
+    }
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
 }

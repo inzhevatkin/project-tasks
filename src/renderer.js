@@ -12,6 +12,25 @@ elements.showTasks.addEventListener("click", () => showPage("tasks"));
 elements.showStatistics.addEventListener("click", () => showPage("statistics"));
 elements.showCalendar.addEventListener("click", () => showPage("calendar"));
 elements.showAbout.addEventListener("click", () => elements.aboutDialog.showModal());
+function renderUpdateState(state) {
+  elements.updateStatus.textContent = state.message;
+  elements.updateStatus.title = state.message;
+  elements.updateButton.disabled = state.status !== "available" && state.status !== "ready";
+  elements.updateButton.textContent = state.status === "ready" ? "Установить и перезапустить" : "Обновить";
+  elements.updateButton.title = state.message;
+}
+window.projectTasks.onUpdateState(renderUpdateState);
+renderUpdateState(await window.projectTasks.getUpdateState());
+elements.updateButton.addEventListener("click", async () => {
+  elements.updateButton.disabled = true;
+  try {
+    await workspace.flushSave();
+    await window.projectTasks.installUpdate();
+  } catch (error) {
+    elements.updateStatus.textContent = `Не удалось подготовить обновление: ${error.message}`;
+    elements.updateButton.disabled = false;
+  }
+});
 
 function showPage(page) {
   elements.tasksPage.hidden = page !== "tasks";
