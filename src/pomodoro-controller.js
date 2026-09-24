@@ -105,7 +105,7 @@ export function createPomodoroController(elements, { now = Date.now } = {}) {
       dot.className = `pomodoro-dot${index < completedRoundsInCycle() ? " completed" : ""}`;
       return dot;
     }));
-    document.title = pomodoro.running ? `${formatted} · ${t(phase.label)} — ${t("Мои проекты")}` : t("Мои проекты");
+    document.title = pomodoro.running ? `${formatted} · ${t(phase.label)} — TiM` : "TiM";
     const taskbarState = taskbarProgress(pomodoro);
     const taskbarKey = `${pomodoro.phase}:${pomodoro.secondsRemaining}:${pomodoro.running}:${pomodoro.activeRunId}`;
     if (taskbarKey !== lastTaskbarState) {

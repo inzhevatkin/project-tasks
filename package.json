@@ -1,7 +1,7 @@
 {
   "name": "project-tasks",
-  "productName": "Мои проекты",
-  "version": "0.1.2",
+  "productName": "TiM",
+  "version": "0.1.3",
   "description": "Кроссплатформенный менеджер проектов и задач",
   "main": "electron/main.js",
   "scripts": {
@@ -20,7 +20,7 @@
   "private": true,
   "build": {
     "appId": "com.inzhevatkin.projecttasks",
-    "artifactName": "project-tasks-setup-${version}.${ext}",
+    "artifactName": "TiM-setup-${version}.${ext}",
     "publish": [
       {
         "provider": "github",

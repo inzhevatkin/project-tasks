@@ -1,6 +1,5 @@
 // Russian source text is the translation key. User-created content is never translated.
 const translations = {
-  "Мои проекты": ["My Projects", "我的项目"],
   "Кроссплатформенный менеджер проектов и задач": ["Cross-platform project and task manager", "跨平台项目与任务管理工具"],
   "Таймер Pomodoro": ["Pomodoro timer", "番茄钟"],
   "Фокус": ["Focus", "专注"],
@@ -90,7 +89,6 @@ const translations = {
   "ПЛАН НА ДЕНЬ": ["DAILY PLAN", "每日计划"],
   "События, запланированные на сегодня:": ["Events scheduled for today:", "今天安排的事件："],
   "Понятно": ["Got it", "知道了"],
-  "МОИ ПРОЕКТЫ": ["MY PROJECTS", "我的项目"],
   "Версия …": ["Version …", "版本 …"],
   "Версия {version}": ["Version {version}", "版本 {version}"],
   "Закрыть": ["Close", "关闭"],
@@ -160,5 +158,5 @@ export function localizeDocument(root = document) {
       if (value && translations[value]) element.setAttribute(attribute, t(value));
     }
   }
-  root.title = t("Мои проекты");
+  root.title = "TiM";
 }

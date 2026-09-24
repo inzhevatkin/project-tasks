@@ -31,11 +31,11 @@ jobs:
         run: |
           $tag = "v$env:APP_VERSION"
           $assets = @(
-            "dist/project-tasks-setup-$env:APP_VERSION.exe",
-            "dist/project-tasks-setup-$env:APP_VERSION.exe.blockmap",
+            "dist/TiM-setup-$env:APP_VERSION.exe",
+            "dist/TiM-setup-$env:APP_VERSION.exe.blockmap",
             "dist/latest.yml"
           )
           foreach ($asset in $assets) {
             if (-not (Test-Path -LiteralPath $asset)) { throw "Missing release asset: $asset" }
           }
-          gh release create $tag @assets --target $env:GITHUB_SHA --title "Мои проекты $env:APP_VERSION" --generate-notes --latest
+          gh release create $tag @assets --target $env:GITHUB_SHA --title "TiM $env:APP_VERSION" --generate-notes --latest

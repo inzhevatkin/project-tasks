@@ -34,7 +34,7 @@ if (isSmokeTest) {
 function createWindow() {
   const window = new BrowserWindow({
     width: 1240, height: 760, minWidth: 940, minHeight: 600,
-    backgroundColor: "#f3f5f9", title: "Мои проекты",
+    backgroundColor: "#f3f5f9", title: "TiM",
     icon: join(currentDirectory, "../assets/icon.png"),
     webPreferences: {
       preload: join(currentDirectory, "preload.cjs"),
@@ -63,7 +63,9 @@ function createWindow() {
               }
               document.querySelector("#show-about").click();
               if (!document.querySelector("#about-dialog").open) return reject(new Error("About dialog failed"));
-              if (document.documentElement.lang !== "${smokeLocale === "zh" ? "zh-CN" : smokeLocale}"
+              if (document.title !== "TiM"
+                || document.querySelector("#about-dialog .eyebrow").textContent !== "TiM"
+                || document.documentElement.lang !== "${smokeLocale === "zh" ? "zh-CN" : smokeLocale}"
                 || document.querySelector("#show-tasks").textContent !== "${tasksLabel}"
                 || document.querySelector("#about-version").textContent !== "${versionLabel} ${app.getVersion()}") {
                 return reject(new Error("Application version was not rendered in About dialog"));
