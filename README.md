@@ -1,5 +1,7 @@
 # TiM
 
+[Русский](README.md) · [English](README.en.md) · [简体中文](README.zh-CN.md)
+
 Кроссплатформенное десктопное приложение для личных проектов и задач. Основа — Electron: один код работает на Windows, macOS и Linux.
 
 ## Уже работает
