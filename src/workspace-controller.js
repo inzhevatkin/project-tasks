@@ -1,6 +1,7 @@
 import { createProject, createProjectType, createTask, itemName, normalizeWorkspace } from "./models.js";
 import { textSpan } from "./ui/dom.js";
 import { t } from "./i18n.js";
+import { formatCommentSelection, renderCommentPreview } from "./comment-format.js";
 
 export function createWorkspaceController(elements) {
   const state = {
@@ -76,6 +77,8 @@ export function createWorkspaceController(elements) {
     if (document.activeElement !== elements.taskTitle) elements.taskTitle.value = task.title;
     if (document.activeElement !== elements.taskComment) elements.taskComment.value = task.comment;
     elements.taskCompleted.checked = task.completed;
+    renderCommentPreview(elements.commentPreview, task.comment);
+    elements.commentPreviewSection.hidden = !task.comment.trim();
   }
 
   function render() {
@@ -285,11 +288,37 @@ export function createWorkspaceController(elements) {
     scheduleSave();
   });
 
+  function applyCommentFormat(format) {
+    if (!selectedTask()) return;
+    const input = elements.taskComment;
+    const result = formatCommentSelection(input.value, input.selectionStart, input.selectionEnd, format);
+    input.value = result.value;
+    input.focus();
+    input.setSelectionRange(result.start, result.end);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  elements.commentToolbar.addEventListener("mousedown", (event) => {
+    if (event.target.closest("[data-comment-format]")) event.preventDefault();
+  });
+  elements.commentToolbar.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-comment-format]");
+    if (button) applyCommentFormat(button.dataset.commentFormat);
+  });
+  elements.taskComment.addEventListener("keydown", (event) => {
+    if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+    const format = { b: "bold", i: "italic" }[event.key.toLowerCase()];
+    if (!format) return;
+    event.preventDefault();
+    applyCommentFormat(format);
+  });
   elements.taskComment.addEventListener("input", () => {
     const task = selectedTask();
     if (!task) return;
     task.comment = elements.taskComment.value;
     renderTasks();
+    renderCommentPreview(elements.commentPreview, task.comment);
+    elements.commentPreviewSection.hidden = !task.comment.trim();
     scheduleSave();
   });
 

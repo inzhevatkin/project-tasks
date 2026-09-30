@@ -7,7 +7,7 @@ TiM is a desktop app for organizing personal projects and tasks. It is built wit
 ## Features
 
 - Create and delete projects, group them by type, and switch between groups.
-- Keep tasks and optional comments inside each project; rename groups, projects, and tasks by double-clicking.
+- Keep tasks and optional comments inside each project; use bold, italic, and line breaks in comments with a live preview. Rename groups, projects, and tasks by double-clicking.
 - Track task completion and save changes automatically to a local JSON file.
 - Use a classic Pomodoro timer: 25 minutes of focus, a 5-minute short break, and a 15-minute long break after four focus sessions.
 - Start breaks automatically, hear distinct bell-like sounds at the end of focus and breaks, and see timer progress on the Windows taskbar icon or macOS Dock icon.

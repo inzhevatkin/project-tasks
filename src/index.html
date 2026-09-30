@@ -76,7 +76,16 @@
           <input id="task-title" class="large-input" autocomplete="off" />
           <label class="check-row"><input id="task-completed" type="checkbox" /><span>Задача выполнена</span></label>
           <label for="task-comment">Комментарий</label>
+          <div id="comment-toolbar" class="comment-toolbar" role="toolbar" aria-label="Форматирование комментария">
+            <button type="button" data-comment-format="bold" aria-label="Жирный текст" title="Жирный текст (Ctrl+B)"><strong>B</strong></button>
+            <button type="button" data-comment-format="italic" aria-label="Курсив" title="Курсив (Ctrl+I)"><em>I</em></button>
+            <button type="button" data-comment-format="newline" aria-label="Новая строка" title="Новая строка">↵</button>
+          </div>
           <textarea id="task-comment" placeholder="Необязательный комментарий к задаче"></textarea>
+          <div id="comment-preview-section" class="comment-preview-section" hidden>
+            <p class="comment-preview-label">Предпросмотр</p>
+            <div id="comment-preview" class="comment-preview" aria-label="Форматированный комментарий"></div>
+          </div>
           <p id="save-status" class="save-status">Изменения сохраняются автоматически</p>
           <button id="delete-task" class="danger" type="button">Удалить задачу</button>
         </div>

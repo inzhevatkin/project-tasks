@@ -104,8 +104,27 @@ function createWindow() {
                 .then(() => rename("#project-list [data-id]", "Новый проект"))
                 .then(() => rename("#task-list [data-id]", "Новая задача"))
                 .then(() => {
-                  if (document.querySelector("#task-completed").checked) throw new Error("Rename changed task completion");
-                  resolve(true);
+                  try {
+                    if (document.querySelector("#task-completed").checked) throw new Error("Rename changed task completion");
+                    const input = document.querySelector("#task-comment");
+                    const preview = document.querySelector("#comment-preview");
+                    input.value = "first\\n**bold** and *italic* <img src=x>";
+                    input.dispatchEvent(new Event("input", { bubbles: true }));
+                    if (preview.querySelector("strong")?.textContent !== "bold"
+                      || preview.querySelector("em")?.textContent !== "italic"
+                      || preview.querySelector("img") || !preview.textContent.includes("<img src=x>")) {
+                      throw new Error("Formatted comment preview failed or interpreted HTML");
+                    }
+                    input.value = "alpha beta";
+                    input.dispatchEvent(new Event("input", { bubbles: true }));
+                    input.focus();
+                    input.setSelectionRange(6, 10);
+                    document.querySelector('[data-comment-format="bold"]').click();
+                    if (input.value !== "alpha **beta**" || preview.querySelector("strong")?.textContent !== "beta") {
+                      throw new Error("Bold toolbar action failed");
+                    }
+                    resolve(true);
+                  } catch (error) { reject(error); }
                 }, reject);
               return;
             }
