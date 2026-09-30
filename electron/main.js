@@ -18,7 +18,7 @@ if (isSmokeTest) {
     projectTypes: [{ id: "work", name: "Работа" }],
     projects: [{
       id: "smoke-project", name: "Проверочный проект", typeId: "work",
-      tasks: [{ id: "smoke-task", title: "Проверочная задача", comment: "", completed: false }]
+      tasks: [{ id: "smoke-task", title: "Проверочная задача", comment: "first\n**bold** and *italic* <img src=x>", completed: false }]
     }],
     calendarEvents: [{ id: "smoke-event", title: "Утреннее событие", date: today, time: "10:00", annual: false }]
   }));
@@ -106,22 +106,33 @@ function createWindow() {
                 .then(() => {
                   try {
                     if (document.querySelector("#task-completed").checked) throw new Error("Rename changed task completion");
-                    const input = document.querySelector("#task-comment");
-                    const preview = document.querySelector("#comment-preview");
-                    input.value = "first\\n**bold** and *italic* <img src=x>";
-                    input.dispatchEvent(new Event("input", { bubbles: true }));
-                    if (preview.querySelector("strong")?.textContent !== "bold"
-                      || preview.querySelector("em")?.textContent !== "italic"
-                      || preview.querySelector("img") || !preview.textContent.includes("<img src=x>")) {
-                      throw new Error("Formatted comment preview failed or interpreted HTML");
+                    const editor = document.querySelector("#task-comment");
+                    if (document.querySelector("#comment-preview") || editor.querySelector("strong")?.textContent !== "bold"
+                      || editor.querySelector("em")?.textContent !== "italic"
+                      || editor.querySelector("img") || !editor.textContent.includes("<img src=x>")) {
+                      throw new Error("Existing comment was not rendered safely in the editor");
                     }
-                    input.value = "alpha beta";
-                    input.dispatchEvent(new Event("input", { bubbles: true }));
-                    input.focus();
-                    input.setSelectionRange(6, 10);
+                    editor.textContent = "alpha beta";
+                    editor.dispatchEvent(new Event("input", { bubbles: true }));
+                    editor.focus();
+                    const range = document.createRange();
+                    range.setStart(editor.firstChild, 6);
+                    range.setEnd(editor.firstChild, 10);
+                    const selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
                     document.querySelector('[data-comment-format="bold"]').click();
-                    if (input.value !== "alpha **beta**" || preview.querySelector("strong")?.textContent !== "beta") {
+                    if (editor.querySelector("b, strong")?.textContent !== "beta") {
                       throw new Error("Bold toolbar action failed");
+                    }
+                    document.querySelector('[data-comment-format="circle-list"]').click();
+                    if (!editor.querySelector('ul[data-marker="circle"]')) throw new Error("Circle list action failed");
+                    document.querySelector('[data-comment-format="square-list"]').click();
+                    if (!editor.querySelector('ul[data-marker="square"]')) throw new Error("Square list action failed");
+                    document.querySelector("#project-list [data-id]").click();
+                    if (editor.querySelector('ul[data-marker="square"]')?.textContent !== "alpha beta"
+                      || editor.querySelector("strong")?.textContent !== "beta") {
+                      throw new Error("Formatted comment was not preserved after rerender");
                     }
                     resolve(true);
                   } catch (error) { reject(error); }

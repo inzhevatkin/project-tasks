@@ -1,7 +1,7 @@
 import { createProject, createProjectType, createTask, itemName, normalizeWorkspace } from "./models.js";
 import { textSpan } from "./ui/dom.js";
 import { t } from "./i18n.js";
-import { formatCommentSelection, renderCommentPreview } from "./comment-format.js";
+import { applyCommentCommand, renderCommentEditor, serializeCommentEditor } from "./comment-format.js";
 
 export function createWorkspaceController(elements) {
   const state = {
@@ -75,10 +75,8 @@ export function createWorkspaceController(elements) {
     elements.detailsEmpty.hidden = Boolean(task);
     if (!task) return;
     if (document.activeElement !== elements.taskTitle) elements.taskTitle.value = task.title;
-    if (document.activeElement !== elements.taskComment) elements.taskComment.value = task.comment;
+    renderCommentEditor(elements.taskComment, task.comment);
     elements.taskCompleted.checked = task.completed;
-    renderCommentPreview(elements.commentPreview, task.comment);
-    elements.commentPreviewSection.hidden = !task.comment.trim();
   }
 
   function render() {
@@ -288,14 +286,14 @@ export function createWorkspaceController(elements) {
     scheduleSave();
   });
 
-  function applyCommentFormat(format) {
-    if (!selectedTask()) return;
-    const input = elements.taskComment;
-    const result = formatCommentSelection(input.value, input.selectionStart, input.selectionEnd, format);
-    input.value = result.value;
-    input.focus();
-    input.setSelectionRange(result.start, result.end);
-    input.dispatchEvent(new Event("input", { bubbles: true }));
+  function saveComment() {
+    const task = selectedTask();
+    if (!task) return;
+    const value = serializeCommentEditor(elements.taskComment);
+    if (value === task.comment) return;
+    task.comment = value;
+    renderTasks();
+    scheduleSave();
   }
 
   elements.commentToolbar.addEventListener("mousedown", (event) => {
@@ -303,24 +301,24 @@ export function createWorkspaceController(elements) {
   });
   elements.commentToolbar.addEventListener("click", (event) => {
     const button = event.target.closest("[data-comment-format]");
-    if (button) applyCommentFormat(button.dataset.commentFormat);
+    if (!button || !selectedTask()) return;
+    applyCommentCommand(elements.taskComment, button.dataset.commentFormat);
+    saveComment();
   });
   elements.taskComment.addEventListener("keydown", (event) => {
     if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
     const format = { b: "bold", i: "italic" }[event.key.toLowerCase()];
     if (!format) return;
     event.preventDefault();
-    applyCommentFormat(format);
+    applyCommentCommand(elements.taskComment, format);
+    saveComment();
   });
-  elements.taskComment.addEventListener("input", () => {
-    const task = selectedTask();
-    if (!task) return;
-    task.comment = elements.taskComment.value;
-    renderTasks();
-    renderCommentPreview(elements.commentPreview, task.comment);
-    elements.commentPreviewSection.hidden = !task.comment.trim();
-    scheduleSave();
+  elements.taskComment.addEventListener("paste", (event) => {
+    event.preventDefault();
+    document.execCommand("insertText", false, event.clipboardData?.getData("text/plain") ?? "");
   });
+  elements.taskComment.addEventListener("drop", (event) => event.preventDefault());
+  elements.taskComment.addEventListener("input", saveComment);
 
   elements.deleteTask.addEventListener("click", async () => {
     const project = selectedProject();

@@ -18,8 +18,6 @@ export const elements = {
   taskCompleted: document.querySelector("#task-completed"),
   taskComment: document.querySelector("#task-comment"),
   commentToolbar: document.querySelector("#comment-toolbar"),
-  commentPreviewSection: document.querySelector("#comment-preview-section"),
-  commentPreview: document.querySelector("#comment-preview"),
   deleteTask: document.querySelector("#delete-task"),
   saveStatus: document.querySelector("#save-status"),
   confirmDialog: document.querySelector("#confirm-dialog"),
