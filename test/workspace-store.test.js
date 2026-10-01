@@ -47,7 +47,7 @@ test("adding a calendar event preserves a legacy project and its tasks", async (
   workspace.calendarEvents.push({ id: "event", title: "День рождения", date: "2026-09-14", time: "", annual: true });
   await store.save(workspace);
   const restored = await store.load();
-  assert.equal(restored.version, 3);
+  assert.equal(restored.version, 4);
   assert.equal(restored.projects[0].tasks[0].comment, "Текст");
   assert.equal(restored.projectTypes[0].name, "Работа");
   assert.equal(restored.calendarEvents[0].annual, true);

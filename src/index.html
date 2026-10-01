@@ -28,12 +28,18 @@
       <button id="show-tasks" class="view-tab selected" type="button">Задачи</button>
       <button id="show-calendar" class="view-tab" type="button">Календарь</button>
       <button id="show-statistics" class="view-tab" type="button">Статистика</button>
+      <button id="show-journal" class="view-tab" type="button">Дневник</button>
       <div class="app-meta">
         <span id="update-status" class="update-status" role="status"></span>
         <button id="update-button" class="update-button" type="button" disabled title="Обновлений пока нет">Обновить</button>
         <button id="show-about" class="about-button" type="button">О программе</button>
       </div>
     </nav>
+    <div id="current-work" class="current-work" hidden>
+      <span>В работе:</span>
+      <button id="current-work-task" class="current-work-task" type="button"></button>
+      <button id="stop-working" class="secondary" type="button">Остановить работу</button>
+    </div>
     <main id="tasks-page" class="workspace">
       <section class="panel">
         <header class="panel-header">
@@ -74,7 +80,12 @@
         <div id="details" class="details" hidden>
           <label for="task-title">Название</label>
           <input id="task-title" class="large-input" autocomplete="off" />
-          <label class="check-row"><input id="task-completed" type="checkbox" /><span>Задача выполнена</span></label>
+          <label for="task-status">Состояние</label>
+          <select id="task-status">
+            <option value="pending">К выполнению</option>
+            <option value="in_progress">В работе</option>
+            <option value="completed">Выполнена</option>
+          </select>
           <label for="task-comment">Комментарий</label>
           <div id="comment-toolbar" class="comment-toolbar" role="toolbar" aria-label="Форматирование комментария">
             <button type="button" data-comment-format="bold" aria-label="Жирный текст" title="Жирный текст (Ctrl+B)"><strong>B</strong></button>
@@ -154,6 +165,25 @@
           <p id="calendar-save-status" class="save-status" role="status"></p>
         </aside>
       </div>
+    </main>
+
+    <main id="journal-page" class="journal-page" hidden>
+      <header class="journal-header">
+        <div><p class="eyebrow">ИСТОРИЯ ЗАДАЧ</p><h2>Дневник</h2></div>
+        <p id="journal-save-status" class="save-status" role="status"></p>
+      </header>
+      <p id="journal-since" class="journal-hint"></p>
+      <p class="journal-hint">Для старых задач восстановлены только известные даты создания. Даты прежних завершений не сохранялись.</p>
+      <form id="journal-filters" class="journal-filters" role="search" aria-label="Поиск в дневнике">
+        <div class="journal-search"><label for="journal-search">Задача, проект или раздел</label><input id="journal-search" type="search" placeholder="Поиск в истории" autocomplete="off" /></div>
+        <div><label for="journal-from">С даты</label><input id="journal-from" type="date" /></div>
+        <div><label for="journal-to">По дату</label><input id="journal-to" type="date" /></div>
+        <button id="journal-reset" class="secondary" type="button">Сбросить фильтры</button>
+      </form>
+      <p id="journal-empty" class="journal-empty">Записей пока нет. Создайте задачу или измените её состояние.</p>
+      <p id="journal-no-results" class="journal-empty" hidden>По выбранным условиям записей нет.</p>
+      <div id="journal-list" class="journal-list"></div>
+      <button id="journal-more" class="secondary" type="button" hidden>Показать ещё</button>
     </main>
 
     <dialog id="confirm-dialog">

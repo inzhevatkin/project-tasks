@@ -8,6 +8,8 @@ import { tmpdir } from "node:os";
 
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
 const isSmokeTest = process.env.PROJECT_TASKS_SMOKE_TEST === "1";
+let quitting = false;
+app.on("before-quit", () => { quitting = true; });
 if (isSmokeTest) {
   const testData = mkdtempSync(join(tmpdir(), "project-tasks-smoke-"));
   app.setPath("userData", testData);
@@ -42,6 +44,35 @@ function createWindow() {
     }
   });
   window.loadFile(join(currentDirectory, "../src/index.html"));
+  let closeReady = false;
+  let closePending = false;
+  let closeAllowed = false;
+  const rendererReady = (event) => {
+    if (event.sender === window.webContents) closeReady = true;
+  };
+  const finishClose = (event, saved) => {
+    if (event.sender !== window.webContents || !closePending) return;
+    closePending = false;
+    if (saved !== true) return;
+    closeAllowed = true;
+    if (quitting) app.quit();
+    else window.close();
+  };
+  ipcMain.on("app:renderer-ready", rendererReady);
+  ipcMain.on("app:close-result", finishClose);
+  window.on("close", (event) => {
+    if (!closeReady || closeAllowed || window.webContents.isDestroyed()) return;
+    event.preventDefault();
+    if (closePending) return;
+    closePending = true;
+    window.webContents.send("app:before-close");
+  });
+  window.webContents.on("render-process-gone", () => { closeReady = false; });
+  window.webContents.on("did-start-loading", () => { closeReady = false; });
+  window.on("closed", () => {
+    ipcMain.removeListener("app:renderer-ready", rendererReady);
+    ipcMain.removeListener("app:close-result", finishClose);
+  });
   if (isSmokeTest) {
     const smokeLocale = ["ru", "en", "zh"].includes(process.env.PROJECT_TASKS_SMOKE_LOCALE)
       ? process.env.PROJECT_TASKS_SMOKE_LOCALE : "ru";
@@ -105,7 +136,7 @@ function createWindow() {
                 .then(() => rename("#task-list [data-id]", "Новая задача"))
                 .then(() => {
                   try {
-                    if (document.querySelector("#task-completed").checked) throw new Error("Rename changed task completion");
+                    if (document.querySelector("#task-status").value !== "pending") throw new Error("Rename changed task state");
                     const editor = document.querySelector("#task-comment");
                     if (document.querySelector("#comment-preview") || editor.querySelector("strong")?.textContent !== "bold"
                       || editor.querySelector("em")?.textContent !== "italic"
@@ -134,6 +165,44 @@ function createWindow() {
                       || editor.querySelector("strong")?.textContent !== "beta") {
                       throw new Error("Formatted comment was not preserved after rerender");
                     }
+                    const setStatus = (value) => {
+                      const status = document.querySelector("#task-status");
+                      status.value = value;
+                      status.dispatchEvent(new Event("change", { bubbles: true }));
+                    };
+                    setStatus("in_progress");
+                    if (document.querySelector("#current-work").hidden
+                      || !document.querySelector("#task-list .in-progress")) throw new Error("Working task indicator failed");
+                    document.querySelector("#task-input").value = "Вторая задача дневника";
+                    document.querySelector("#task-form").requestSubmit();
+                    setStatus("in_progress");
+                    if (document.querySelectorAll("#task-list .in-progress").length !== 1
+                      || !document.querySelector("#current-work-task").textContent.includes("Вторая задача дневника")) {
+                      throw new Error("Switching the working task failed");
+                    }
+                    setStatus("completed");
+                    if (!document.querySelector("#current-work").hidden) throw new Error("Completed task stayed in progress");
+                    setStatus("pending");
+                    document.querySelector("#show-journal").click();
+                    const journal = document.querySelector("#journal-list");
+                    const actions = [...journal.querySelectorAll(".journal-entry")].map((row) => row.dataset.action);
+                    if (document.querySelector("#journal-page").hidden || actions.length !== 6
+                      || !["created", "started", "paused", "completed", "reopened"].every((action) => actions.includes(action))
+                      || !journal.querySelector("time[datetime]")) throw new Error("Diary transitions or dated entries failed");
+                    const search = document.querySelector("#journal-search");
+                    search.value = "Новая задача";
+                    search.dispatchEvent(new Event("input", { bubbles: true }));
+                    if (journal.querySelectorAll(".journal-entry").length !== 2) throw new Error("Diary search failed");
+                    document.querySelector("#journal-to").value = "2000-01-01";
+                    document.querySelector("#journal-to").dispatchEvent(new Event("input", { bubbles: true }));
+                    if (journal.children.length || document.querySelector("#journal-no-results").hidden) throw new Error("Diary date filter failed");
+                    document.querySelector("#journal-reset").click();
+                    journal.querySelector("[data-task-id]").click();
+                    if (document.querySelector("#tasks-page").hidden
+                      || document.querySelector("#task-title").value !== "Вторая задача дневника") throw new Error("Opening a diary task failed");
+                    // Quit immediately after a status change, before the debounce
+                    // timer can save. The close guard must persist this entry.
+                    setStatus("in_progress");
                     resolve(true);
                   } catch (error) { reject(error); }
                 }, reject);
@@ -144,7 +213,25 @@ function createWindow() {
           };
           check();
         })`);
-        console.log("ProjectTasks modules initialized; calendar, daily agenda, and rename passed");
+        if (process.env.PROJECT_TASKS_SMOKE_SCREENSHOT) {
+          window.setSize(940, 760);
+          await window.webContents.executeJavaScript('document.querySelector("#show-journal").click(); new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+          writeFileSync(process.env.PROJECT_TASKS_SMOKE_SCREENSHOT, (await window.webContents.capturePage()).toPNG());
+        }
+        app.once("will-quit", () => {
+          try {
+            const saved = JSON.parse(readFileSync(join(app.getPath("userData"), "projects.json"), "utf8"));
+            const task = saved.projects[0].tasks.find((item) => item.title === "Вторая задача дневника");
+            if (saved.version !== 4 || task?.status !== "in_progress"
+              || saved.taskJournal.length !== 7 || saved.taskJournal.at(-1).action !== "started"
+              || saved.projects[0].tasks[0].comment !== "+ alpha **beta**"
+              || saved.calendarEvents.length !== 2) throw new Error("Closing the app lost journal or workspace data");
+            console.log("ProjectTasks smoke passed: calendar, comments, task states, diary filters, and save before quit");
+          } catch (error) {
+            console.error(error);
+            app.exit(1);
+          }
+        });
         app.quit();
       } catch (error) {
         console.error(error);

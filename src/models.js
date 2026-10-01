@@ -1,4 +1,5 @@
 import { normalizeCalendarEvents } from "./calendar.js";
+import { normalizeTaskJournal, recordTaskEvent, taskStatus, validTimestamp } from "./task-journal.js";
 
 export const DEFAULT_PROJECT_TYPE_ID = "work";
 
@@ -16,7 +17,8 @@ export function createProject(name, typeId = DEFAULT_PROJECT_TYPE_ID) {
 export function createTask(title) {
   return {
     id: crypto.randomUUID(), title: title.trim(), comment: "",
-    completed: false, createdAt: new Date().toISOString()
+    status: "pending", completed: false, createdAt: new Date().toISOString(),
+    workStartedAt: null, completedAt: null
   };
 }
 
@@ -43,7 +45,22 @@ export function normalizeWorkspace(value) {
     tasks: Array.isArray(project.tasks) ? project.tasks.filter(isObject).map(normalizeTask) : []
   }));
 
-  return { version: 3, projectTypes, projects, calendarEvents: normalizeCalendarEvents(isLegacy ? [] : value?.calendarEvents) };
+  const workspace = {
+    version: 4, projectTypes, projects,
+    calendarEvents: normalizeCalendarEvents(isLegacy ? [] : value?.calendarEvents),
+    taskJournal: normalizeTaskJournal(value?.taskJournal),
+    journalStartedAt: validTimestamp(value?.journalStartedAt) ?? new Date().toISOString()
+  };
+  // Recover only dates that were actually stored. Old completion times were
+  // never recorded, so migration must not invent them.
+  if (!Array.isArray(value?.taskJournal)) {
+    for (const project of projects) {
+      for (const task of project.tasks) {
+        if (task.createdAt) recordTaskEvent(workspace, project, task, "created", task.createdAt).imported = true;
+      }
+    }
+  }
+  return workspace;
 }
 
 function normalizeTypes(value) {
@@ -60,12 +77,15 @@ function normalizeTypes(value) {
 }
 
 function normalizeTask(task) {
+  const status = taskStatus(task);
   return {
     id: textOr(task.id, crypto.randomUUID()),
     title: textOr(task.title, "Без названия"),
     comment: typeof task.comment === "string" ? task.comment : "",
-    completed: task.completed === true,
-    createdAt: textOr(task.createdAt, new Date().toISOString())
+    status, completed: status === "completed",
+    createdAt: validTimestamp(task.createdAt),
+    workStartedAt: status === "in_progress" ? validTimestamp(task.workStartedAt) : null,
+    completedAt: status === "completed" ? validTimestamp(task.completedAt) : null
   };
 }
 

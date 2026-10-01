@@ -26,11 +26,12 @@ test("language-dependent messages and date formats follow the selected locale", 
 });
 
 test("dynamic interface messages have translations", () => {
-  const files = ["renderer.js", "workspace-controller.js", "calendar-controller.js", "pomodoro-controller.js", "ui/theme.js", "ui/statistics-view.js"];
+  const files = ["renderer.js", "workspace-controller.js", "calendar-controller.js", "journal-controller.js", "pomodoro-controller.js", "ui/theme.js", "ui/statistics-view.js"];
   const labels = new Set(files.flatMap((file) => {
     const source = readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8");
     return [...source.matchAll(/\bt\("([^"]+)"/g)].map((match) => match[1]);
   }));
+  for (const label of ["Создана задача", "Начата работа", "Работа остановлена", "Задача выполнена", "Задача возвращена к выполнению", "Задача удалена"]) labels.add(label);
   for (const locale of ["en", "zh"]) {
     setLocale(locale);
     for (const label of labels) assert.notEqual(t(label), label, `Missing ${locale} translation: ${label}`);

@@ -37,7 +37,7 @@ test("старый файл проектов сохраняет задачи п�
     projects: [{ id: "project", name: "Ремонт", typeId: "home", tasks: [{ id: "task", title: "Купить краску", comment: "Синюю", completed: false }] }]
   };
   const result = normalizeWorkspace(old);
-  assert.equal(result.version, 3);
+  assert.equal(result.version, 4);
   assert.equal(result.projects[0].tasks[0].comment, "Синюю");
   assert.equal(result.projectTypes[0].name, "Дом");
   assert.deepEqual(result.calendarEvents, []);

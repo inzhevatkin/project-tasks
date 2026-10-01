@@ -2,10 +2,11 @@ import { createProject, createProjectType, createTask, itemName, normalizeWorksp
 import { textSpan } from "./ui/dom.js";
 import { t } from "./i18n.js";
 import { applyCommentCommand, renderCommentEditor, serializeCommentEditor } from "./comment-format.js";
+import { changeTaskStatus, recordTaskDeletion, recordTaskEvent, taskStatus, workingTask } from "./task-journal.js";
 
 export function createWorkspaceController(elements) {
   const state = {
-    projectTypes: [], projects: [], calendarEvents: [], selectedTypeId: null,
+    projectTypes: [], projects: [], calendarEvents: [], taskJournal: [], journalStartedAt: null, selectedTypeId: null,
     selectedProjectId: null, selectedTaskId: null, saveTimer: null, lastListClick: null
   };
   const selectedType = () => state.projectTypes.find((type) => type.id === state.selectedTypeId) ?? null;
@@ -14,6 +15,9 @@ export function createWorkspaceController(elements) {
   const selectedTask = () => selectedProject()?.tasks.find((task) => task.id === state.selectedTaskId) ?? null;
   const displayTypeName = (type) => type.id === "work" && type.name === "Работа" ? t("Работа") : type.name;
   const displayName = (name) => name === "Без названия" ? t(name) : name;
+  const journalListeners = new Set();
+  const notifyJournal = () => journalListeners.forEach((listener) => listener());
+  const statusLabels = { pending: "К выполнению", in_progress: "В работе", completed: "Выполнена" };
 
   function renderTypes() {
     elements.typeList.replaceChildren(...state.projectTypes.map((type) => {
@@ -53,18 +57,21 @@ export function createWorkspaceController(elements) {
     elements.taskInput.disabled = !project;
     elements.addTask.disabled = !project;
     elements.taskList.replaceChildren(...(project?.tasks ?? []).map((task) => {
+      const status = taskStatus(task);
       const button = document.createElement("button");
       button.type = "button";
-      button.className = `list-item task-item${task.completed ? " completed" : ""}${task.id === state.selectedTaskId ? " selected" : ""}`;
+      button.className = `list-item task-item${status === "completed" ? " completed" : ""}${status === "in_progress" ? " in-progress" : ""}${task.id === state.selectedTaskId ? " selected" : ""}`;
       button.dataset.id = task.id;
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", String(task.id === state.selectedTaskId));
+      button.setAttribute("aria-label", `${displayName(task.title)} · ${t(statusLabels[status])}`);
       button.title = t("Дважды щёлкните, чтобы переименовать задачу");
       button.append(
-        textSpan(task.completed ? "✓" : "○", "task-state"),
+        textSpan(status === "completed" ? "✓" : status === "in_progress" ? "▶" : "○", "task-state"),
         textSpan(displayName(task.title), "item-title"),
         textSpan(task.comment.trim() ? t("Комментарий") : "", "note-badge")
       );
+      if (status === "in_progress") button.append(textSpan(t("В работе"), "task-status-badge"));
       return button;
     }));
   }
@@ -76,7 +83,7 @@ export function createWorkspaceController(elements) {
     if (!task) return;
     if (document.activeElement !== elements.taskTitle) elements.taskTitle.value = task.title;
     renderCommentEditor(elements.taskComment, task.comment);
-    elements.taskCompleted.checked = task.completed;
+    elements.taskStatus.value = taskStatus(task);
   }
 
   function render() {
@@ -108,36 +115,53 @@ export function createWorkspaceController(elements) {
     clearTimeout(state.saveTimer);
     elements.saveStatus.textContent = t("Сохранение…");
     elements.calendarSaveStatus.textContent = t("Сохранение…");
+    elements.journalSaveStatus.textContent = t("Сохранение…");
     elements.saveStatus.classList.remove("error");
     elements.calendarSaveStatus.classList.remove("error");
+    elements.journalSaveStatus.classList.remove("error");
     state.saveTimer = setTimeout(async () => {
       state.saveTimer = null;
       try {
-        await window.projectTasks.save({
-          version: 3, projectTypes: state.projectTypes, projects: state.projects,
-          calendarEvents: state.calendarEvents
-        });
+        await window.projectTasks.save(snapshot());
         elements.saveStatus.textContent = t("Все изменения сохранены");
         elements.calendarSaveStatus.textContent = t("Все изменения сохранены");
+        elements.journalSaveStatus.textContent = t("Все изменения сохранены");
       } catch (error) {
         elements.saveStatus.textContent = t("Не удалось сохранить изменения");
         elements.calendarSaveStatus.textContent = t("Не удалось сохранить изменения");
+        elements.journalSaveStatus.textContent = t("Не удалось сохранить изменения");
         elements.saveStatus.classList.add("error");
         elements.calendarSaveStatus.classList.add("error");
+        elements.journalSaveStatus.classList.add("error");
         console.error(error);
       }
     }, 300);
   }
 
+  function snapshot() {
+    return {
+      version: 4, projectTypes: state.projectTypes, projects: state.projects,
+      calendarEvents: state.calendarEvents, taskJournal: state.taskJournal,
+      journalStartedAt: state.journalStartedAt
+    };
+  }
+
   async function flushSave() {
     clearTimeout(state.saveTimer);
     state.saveTimer = null;
-    await window.projectTasks.save({
-      version: 3, projectTypes: state.projectTypes, projects: state.projects,
-      calendarEvents: state.calendarEvents
-    });
-    elements.saveStatus.textContent = t("Все изменения сохранены");
-    elements.calendarSaveStatus.textContent = t("Все изменения сохранены");
+    try {
+      await window.projectTasks.save(snapshot());
+      for (const element of [elements.saveStatus, elements.calendarSaveStatus, elements.journalSaveStatus]) {
+        element.textContent = t("Все изменения сохранены");
+        element.classList.remove("error");
+      }
+    } catch (error) {
+      for (const element of [elements.saveStatus, elements.calendarSaveStatus, elements.journalSaveStatus]) {
+        element.textContent = t("Не удалось сохранить изменения");
+        element.classList.add("error");
+      }
+      throw error;
+    }
   }
 
   function askToDelete(title, message) {
@@ -198,6 +222,7 @@ export function createWorkspaceController(elements) {
     if (!name || name === type.name) return;
     type.name = name;
     render();
+    notifyJournal();
     scheduleSave();
   });
 
@@ -225,6 +250,7 @@ export function createWorkspaceController(elements) {
     if (!name || name === project.name) return;
     project.name = name;
     render();
+    notifyJournal();
     scheduleSave();
   });
 
@@ -232,11 +258,14 @@ export function createWorkspaceController(elements) {
     const project = selectedProject();
     if (!project || !await askToDelete(t("Удалить проект?"), t("Проект «{name}» и все его задачи будут удалены.", { name: project.name }))) return;
     const visibleIndex = projectsForSelectedType().indexOf(project);
+    const deletedAt = new Date().toISOString();
+    for (const task of project.tasks) recordTaskDeletion(state, project, task, deletedAt);
     state.projects.splice(state.projects.indexOf(project), 1);
     const remaining = projectsForSelectedType();
     state.selectedProjectId = remaining[Math.min(visibleIndex, remaining.length - 1)]?.id ?? null;
     state.selectedTaskId = selectedProject()?.tasks[0]?.id ?? null;
     render();
+    notifyJournal();
     scheduleSave();
   });
 
@@ -247,9 +276,11 @@ export function createWorkspaceController(elements) {
     if (!project || !title) return;
     const task = createTask(title);
     project.tasks.push(task);
+    recordTaskEvent(state, project, task, "created", task.createdAt);
     state.selectedTaskId = task.id;
     elements.taskInput.value = "";
     render();
+    notifyJournal();
     scheduleSave();
   });
 
@@ -266,6 +297,7 @@ export function createWorkspaceController(elements) {
     task.title = title;
     state.selectedTaskId = task.id;
     render();
+    notifyJournal();
     scheduleSave();
   });
 
@@ -275,14 +307,16 @@ export function createWorkspaceController(elements) {
     task.title = elements.taskTitle.value;
     renderProjects();
     renderTasks();
+    notifyJournal();
     scheduleSave();
   });
 
-  elements.taskCompleted.addEventListener("change", () => {
+  elements.taskStatus.addEventListener("change", () => {
     const task = selectedTask();
-    if (!task) return;
-    task.completed = elements.taskCompleted.checked;
+    const project = selectedProject();
+    if (!task || !changeTaskStatus(state, project, task, elements.taskStatus.value)) return;
     renderTasks();
+    notifyJournal();
     scheduleSave();
   });
 
@@ -325,9 +359,11 @@ export function createWorkspaceController(elements) {
     const task = selectedTask();
     if (!project || !task || !await askToDelete(t("Удалить задачу?"), t("Задача «{name}» будет удалена.", { name: task.title }))) return;
     const index = project.tasks.indexOf(task);
+    recordTaskDeletion(state, project, task);
     project.tasks.splice(index, 1);
     state.selectedTaskId = project.tasks[Math.min(index, project.tasks.length - 1)]?.id ?? null;
     render();
+    notifyJournal();
     scheduleSave();
   });
 
@@ -338,16 +374,44 @@ export function createWorkspaceController(elements) {
     state.projectTypes = workspace.projectTypes;
     state.projects = workspace.projects;
     state.calendarEvents = workspace.calendarEvents;
+    state.taskJournal = workspace.taskJournal;
+    state.journalStartedAt = workspace.journalStartedAt;
     state.selectedTypeId = state.projectTypes[0]?.id ?? null;
     state.selectedProjectId = projectsForSelectedType()[0]?.id ?? null;
     state.selectedTaskId = selectedProject()?.tasks[0]?.id ?? null;
     render();
-    if (Array.isArray(stored)) await window.projectTasks.save(workspace);
+    notifyJournal();
+    if (Array.isArray(stored) || stored?.version !== 4 || !Array.isArray(stored?.taskJournal)) {
+      await window.projectTasks.save(workspace);
+    }
 
   }
   return {
     initialize,
     flushSave,
+    getTaskJournal: () => state.taskJournal,
+    getJournalStartedAt: () => state.journalStartedAt,
+    getWorkingTask: () => workingTask(state),
+    subscribeJournal(listener) { journalListeners.add(listener); return () => journalListeners.delete(listener); },
+    openTask(projectId, taskId) {
+      const project = state.projects.find((item) => item.id === projectId);
+      if (!project?.tasks.some((task) => task.id === taskId)) return false;
+      state.selectedTypeId = project.typeId;
+      state.selectedProjectId = projectId;
+      state.selectedTaskId = taskId;
+      render();
+      return true;
+    },
+    hasTask: (projectId, taskId) => state.projects.some((project) => project.id === projectId && project.tasks.some((task) => task.id === taskId)),
+    stopWorking() {
+      const current = workingTask(state);
+      if (!current) return;
+      changeTaskStatus(state, current.project, current.task, "pending");
+      renderTasks();
+      renderDetails();
+      notifyJournal();
+      scheduleSave();
+    },
     getCalendarEvents: () => state.calendarEvents,
     setCalendarEvents(events) { state.calendarEvents = events; scheduleSave(); },
     confirmDeletion: askToDelete
