@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("projectTasks", {
   getAppInfo: () => ipcRenderer.invoke("app:info"),
   getUpdateState: () => ipcRenderer.invoke("updates:state"),
+  downloadUpdate: () => ipcRenderer.invoke("updates:download"),
   installUpdate: () => ipcRenderer.invoke("updates:install"),
   onUpdateState: (listener) => {
     const handler = (_event, state) => listener(state);

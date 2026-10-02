@@ -23,16 +23,6 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
     if (workspace.openTask(projectId, taskId)) onOpenTask();
   }
 
-  function renderCurrentWork() {
-    const current = workspace.getWorkingTask();
-    elements.currentWork.hidden = !current;
-    if (!current) return;
-    elements.currentWorkTask.textContent = `${displayName(current.task.title)} · ${displayName(current.project.name)}`;
-    elements.currentWorkTask.title = current.task.workStartedAt
-      ? t("В работе с {date}", { date: new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium", timeStyle: "short" }).format(new Date(current.task.workStartedAt)) })
-      : t("В работе");
-  }
-
   function entryRow(entry) {
     const row = document.createElement("article");
     row.className = `journal-entry ${entry.action}`;
@@ -63,7 +53,6 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
   }
 
   function render() {
-    renderCurrentWork();
     const startedAt = workspace.getJournalStartedAt();
     elements.journalSince.textContent = startedAt
       ? t("История изменений ведётся с {date}. Время записей отображается в вашем часовом поясе.", { date: formatDay(new Date(startedAt)) }) : "";
@@ -94,11 +83,6 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
     elements.journalList.replaceChildren(...sections);
   }
 
-  elements.currentWorkTask.addEventListener("click", () => {
-    const current = workspace.getWorkingTask();
-    if (current) openTask(current.project.id, current.task.id);
-  });
-  elements.stopWorking.addEventListener("click", () => workspace.stopWorking());
   elements.journalList.addEventListener("click", (event) => {
     const button = event.target.closest("[data-task-id]");
     if (button) openTask(button.dataset.projectId, button.dataset.taskId);
@@ -112,7 +96,6 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
   });
   elements.journalMore.addEventListener("click", () => { visibleCount += 100; render(); });
   const unsubscribe = workspace.subscribeJournal(() => {
-    renderCurrentWork();
     if (!elements.journalPage.hidden) render();
   });
   return { initialize: render, render, dispose: unsubscribe };

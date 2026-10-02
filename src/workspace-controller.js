@@ -2,7 +2,7 @@ import { createProject, createProjectType, createTask, itemName, normalizeWorksp
 import { textSpan } from "./ui/dom.js";
 import { t } from "./i18n.js";
 import { applyCommentCommand, renderCommentEditor, serializeCommentEditor } from "./comment-format.js";
-import { changeTaskStatus, recordTaskDeletion, recordTaskEvent, taskStatus, workingTask } from "./task-journal.js";
+import { changeTaskStatus, recordTaskDeletion, recordTaskEvent, taskStatus } from "./task-journal.js";
 
 export function createWorkspaceController(elements) {
   const state = {
@@ -391,7 +391,6 @@ export function createWorkspaceController(elements) {
     flushSave,
     getTaskJournal: () => state.taskJournal,
     getJournalStartedAt: () => state.journalStartedAt,
-    getWorkingTask: () => workingTask(state),
     subscribeJournal(listener) { journalListeners.add(listener); return () => journalListeners.delete(listener); },
     openTask(projectId, taskId) {
       const project = state.projects.find((item) => item.id === projectId);
@@ -403,15 +402,6 @@ export function createWorkspaceController(elements) {
       return true;
     },
     hasTask: (projectId, taskId) => state.projects.some((project) => project.id === projectId && project.tasks.some((task) => task.id === taskId)),
-    stopWorking() {
-      const current = workingTask(state);
-      if (!current) return;
-      changeTaskStatus(state, current.project, current.task, "pending");
-      renderTasks();
-      renderDetails();
-      notifyJournal();
-      scheduleSave();
-    },
     getCalendarEvents: () => state.calendarEvents,
     setCalendarEvents(events) { state.calendarEvents = events; scheduleSave(); },
     confirmDeletion: askToDelete

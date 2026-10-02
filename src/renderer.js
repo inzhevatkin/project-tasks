@@ -5,6 +5,7 @@ import { createPomodoroController } from "./pomodoro-controller.js";
 import { createCalendarController } from "./calendar-controller.js";
 import { createJournalController } from "./journal-controller.js";
 import { localizeDocument, setLocale, t } from "./i18n.js";
+import { runUpdate } from "./update-flow.js";
 
 const workspace = createWorkspaceController(elements);
 const timer = createPomodoroController(elements);
@@ -15,7 +16,10 @@ elements.showStatistics.addEventListener("click", () => showPage("statistics"));
 elements.showCalendar.addEventListener("click", () => showPage("calendar"));
 elements.showJournal.addEventListener("click", () => showPage("journal"));
 elements.showAbout.addEventListener("click", () => elements.aboutDialog.showModal());
+let updateInProgress = false;
+let lastUpdateState = { status: "unavailable" };
 function renderUpdateState(state) {
+  lastUpdateState = state;
   const messages = {
     unavailable: t("Обновления доступны в установленной версии Windows"),
     checking: t("Проверка обновлений…"),
@@ -28,18 +32,32 @@ function renderUpdateState(state) {
   };
   elements.updateStatus.textContent = messages[state.status] ?? state.message;
   elements.updateStatus.title = elements.updateStatus.textContent;
-  elements.updateButton.disabled = state.status !== "available" && state.status !== "ready";
-  elements.updateButton.textContent = state.status === "ready" ? t("Установить и перезапустить") : t("Обновить");
-  elements.updateButton.title = elements.updateStatus.textContent;
+  elements.updateButton.disabled = updateInProgress || !(state.status === "available" || state.status === "ready" || (state.status === "error" && state.canRetry));
+  elements.updateButton.textContent = t("Обновить");
+  elements.updateButton.title = elements.updateButton.disabled
+    ? elements.updateStatus.textContent : t("Скачать, установить и перезапустить приложение");
 }
 elements.updateButton.addEventListener("click", async () => {
-  elements.updateButton.disabled = true;
+  if (updateInProgress) return;
+  updateInProgress = true;
+  renderUpdateState(lastUpdateState);
+  let failure = null;
   try {
-    await workspace.flushSave();
-    await window.projectTasks.installUpdate();
+    await runUpdate({
+      getUpdateState: window.projectTasks.getUpdateState,
+      downloadUpdate: window.projectTasks.downloadUpdate,
+      installUpdate: window.projectTasks.installUpdate,
+      saveWorkspace: workspace.flushSave
+    });
   } catch (error) {
-    elements.updateStatus.textContent = t("Не удалось подготовить обновление: {error}", { error: error.message });
-    elements.updateButton.disabled = false;
+    failure = t("Не удалось подготовить обновление: {error}", { error: error.message });
+  } finally {
+    updateInProgress = false;
+    renderUpdateState(lastUpdateState);
+    if (failure) {
+      elements.updateStatus.textContent = failure;
+      elements.updateStatus.title = failure;
+    }
   }
 });
 

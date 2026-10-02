@@ -171,17 +171,17 @@ function createWindow() {
                       status.dispatchEvent(new Event("change", { bubbles: true }));
                     };
                     setStatus("in_progress");
-                    if (document.querySelector("#current-work").hidden
-                      || !document.querySelector("#task-list .in-progress")) throw new Error("Working task indicator failed");
+                    if (document.querySelector("#current-work")
+                      || !document.querySelector("#task-list .in-progress")) throw new Error("Task state failed or removed work panel is still present");
                     document.querySelector("#task-input").value = "Вторая задача дневника";
                     document.querySelector("#task-form").requestSubmit();
                     setStatus("in_progress");
                     if (document.querySelectorAll("#task-list .in-progress").length !== 1
-                      || !document.querySelector("#current-work-task").textContent.includes("Вторая задача дневника")) {
+                      || !document.querySelector("#task-list .in-progress").textContent.includes("Вторая задача дневника")) {
                       throw new Error("Switching the working task failed");
                     }
                     setStatus("completed");
-                    if (!document.querySelector("#current-work").hidden) throw new Error("Completed task stayed in progress");
+                    if (document.querySelector("#task-list .in-progress")) throw new Error("Completed task stayed in progress");
                     setStatus("pending");
                     document.querySelector("#show-journal").click();
                     const journal = document.querySelector("#journal-list");

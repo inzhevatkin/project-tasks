@@ -8,7 +8,7 @@ TiM is a desktop app for organizing personal projects and tasks. It is built wit
 
 - Create and delete projects, group them by type, and switch between groups.
 - Keep tasks and optional comments inside each project; edit bold, italic, and circle or square bullet lists directly in the comment field. Rename groups, projects, and tasks by double-clicking.
-- Set a task to To do, In progress or Completed. The current working task is visible on every page; starting another task stops work on the previous one.
+- Set a task to To do, In progress or Completed. The current working task is marked in the task list; starting another task stops work on the previous one.
 - Browse a diary of task creation, work starts/stops, completion, reopening and deletion, with dates and times. Search by task, project or section and filter by dates; entries survive deletion of tasks and projects.
 - Save changes automatically to a local JSON file and save pending changes before closing.
 - Use a classic Pomodoro timer: 25 minutes of focus, a 5-minute short break, and a 15-minute long break after four focus sessions.
@@ -21,7 +21,7 @@ TiM is a desktop app for organizing personal projects and tasks. It is built wit
 
 Download the latest Windows installer from [GitHub Releases](https://github.com/inzhevatkin/project-tasks/releases/latest). Choose Russian, English, or Simplified Chinese during installation; the app uses the selected language and keeps it through automatic updates. Project names, task names, comments, and event titles you enter are not translated.
 
-The installed Windows app checks for updates at startup and every six hours. The Update button becomes available when a newer release is published. The installer is not yet signed with a trusted certificate, so Windows SmartScreen may display a warning.
+The installed Windows app checks for updates at startup and every six hours. One click on Update downloads the new version, saves your latest changes, installs silently, and restarts the app. You can keep working during download; no second click is needed. If an error occurs, use the same button to retry. The installer is not yet signed with a trusted certificate, so Windows SmartScreen may display a warning.
 
 To run from source, install Node.js 22 or newer and use:
 
@@ -36,7 +36,7 @@ Updates are not available when running from source. To build a Windows installer
 
 Projects, tasks, calendar events, and the diary are stored locally in `%APPDATA%\project-tasks\projects.json`. Pomodoro history and the daily-agenda display state are stored in Electron's local storage under the same data directory. Updates retain this directory. The daily agenda appears only while the app is running; the closed app does not send reminders.
 
-Mark a task In progress to record what you are working on. Stop working returns it to To do, while Completed records its completion. Selecting a task alone does not change its status. In progress persists between launches until you stop or complete the task; it identifies your current task rather than measuring working hours. Diary entries retain names as they were at the time of each event. For older tasks, only known creation dates are recovered; earlier completion dates were not stored and are not inferred.
+Mark a task In progress to record what you are working on. Selecting To do stops work, while Completed records its completion. Selecting a task alone does not change its status. In progress persists between launches until you stop or complete the task; it identifies your current task rather than measuring working hours. Diary entries retain names as they were at the time of each event. For older tasks, only known creation dates are recovered; earlier completion dates were not stored and are not inferred.
 
 ## Development
 
