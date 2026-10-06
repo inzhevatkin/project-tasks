@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createProject, createTask, normalizeWorkspace } from "../src/models.js";
-import { changeTaskStatus, filterTaskJournal, journalProjects, recordTaskDeletion, recordTaskEvent, workingTask } from "../src/task-journal.js";
+import { changeTaskStatus, filterTaskJournal, journalProjects, journalTasks, recordTaskDeletion, recordTaskEvent, workingTask } from "../src/task-journal.js";
 import { localDateKey } from "../src/calendar.js";
 
 function fixture() {
@@ -120,4 +120,32 @@ test("project filter uses identity across renames and deletion, together with da
   assert.equal(deleted.deleted, true);
   assert.equal(deleted.name, "Новое название");
   assert.equal(filterTaskJournal(workspace.taskJournal, { projectId: project.id }).length, 2);
+});
+
+test("task choices follow their project and preserve renamed or deleted task history", () => {
+  const { workspace, project, first, second } = fixture();
+  const other = createProject("Другой проект");
+  const duplicate = { ...createTask(first.title), id: first.id };
+  other.tasks.push(duplicate);
+  workspace.projects.push(other);
+  const date = new Date(2026, 9, 6, 10).toISOString();
+  recordTaskEvent(workspace, project, first, "created", date);
+  recordTaskEvent(workspace, project, second, "created", date);
+  recordTaskEvent(workspace, other, duplicate, "created", date);
+  first.title = "Новое название задачи";
+  recordTaskEvent(workspace, project, first, "completed", new Date(2026, 9, 6, 11).toISOString());
+  const choices = journalTasks(workspace.taskJournal, workspace.projects);
+  assert.equal(choices.length, 3);
+  assert.equal(new Set(choices.map((task) => task.key)).size, 3);
+  assert.equal(journalTasks(workspace.taskJournal, workspace.projects, other.id).length, 1);
+  assert.equal(choices.find((task) => task.projectId === project.id && task.id === first.id).title, first.title);
+  const day = localDateKey(new Date(date));
+  assert.deepEqual(filterTaskJournal(workspace.taskJournal, { projectId: project.id, taskId: first.id, from: day, to: day }).map((entry) => entry.action), ["completed", "created"]);
+  assert.equal(filterTaskJournal(workspace.taskJournal, { projectId: project.id, taskId: first.id, query: "новое" }).length, 1);
+  assert.equal(filterTaskJournal(workspace.taskJournal, { projectId: project.id, taskId: first.id, to: "2000-01-01" }).length, 0);
+  project.tasks = [second];
+  const deleted = journalTasks([...workspace.taskJournal].reverse(), workspace.projects, project.id).find((task) => task.id === first.id);
+  assert.equal(deleted.deleted, true);
+  assert.equal(deleted.title, "Новое название задачи");
+  assert.equal(deleted.projectId, project.id);
 });

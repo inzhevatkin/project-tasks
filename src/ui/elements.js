@@ -45,6 +45,7 @@ export const elements = {
   journalFilters: document.querySelector("#journal-filters"),
   journalSearch: document.querySelector("#journal-search"),
   journalProject: document.querySelector("#journal-project"),
+  journalTask: document.querySelector("#journal-task"),
   journalFrom: document.querySelector("#journal-from"),
   journalTo: document.querySelector("#journal-to"),
   journalReset: document.querySelector("#journal-reset"),

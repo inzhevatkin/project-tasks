@@ -195,12 +195,20 @@ function createWindow() {
                       || !["created", "started", "paused", "completed", "reopened"].every((action) => actions.includes(action))
                       || !journal.querySelector("time[datetime]")) throw new Error("Diary transitions or dated entries failed");
                     const projectFilter = document.querySelector("#journal-project");
+                    const taskFilter = document.querySelector("#journal-task");
+                    if (taskFilter.options.length !== 4) throw new Error("Diary task choices are incomplete");
+                    taskFilter.value = JSON.stringify(["smoke-archived-project", "smoke-archived-task"]);
+                    taskFilter.dispatchEvent(new Event("change", { bubbles: true }));
+                    if (journal.querySelectorAll(".journal-entry").length !== 1 || !journal.textContent.includes("Архивная задача")) {
+                      throw new Error("Diary task filter failed with all projects selected");
+                    }
                     if (projectFilter.options.length !== 3
                       || ![...projectFilter.options].some((option) => option.value === "smoke-archived-project" && option.textContent.includes("Архивный проект"))) {
                       throw new Error("Diary project choices omitted a deleted project");
                     }
                     projectFilter.value = "smoke-archived-project";
                     projectFilter.dispatchEvent(new Event("change", { bubbles: true }));
+                    if (taskFilter.value || taskFilter.options.length !== 2) throw new Error("Changing project did not reset or narrow task choices");
                     if (journal.querySelectorAll(".journal-entry").length !== 1 || !journal.textContent.includes("Архивная задача")) {
                       throw new Error("Diary project filter failed for a deleted project");
                     }
@@ -210,6 +218,19 @@ function createWindow() {
                       throw new Error("Diary project filter failed for a current project");
                     }
                     const search = document.querySelector("#journal-search");
+                    if (taskFilter.options.length !== 3) throw new Error("Task choices did not follow current project");
+                    taskFilter.value = JSON.stringify(["smoke-project", "smoke-task"]);
+                    taskFilter.dispatchEvent(new Event("change", { bubbles: true }));
+                    if (journal.querySelectorAll(".journal-entry").length !== 2) throw new Error("Combined project and task filters failed");
+                    search.value = "Вторая задача дневника";
+                    search.dispatchEvent(new Event("input", { bubbles: true }));
+                    if (journal.children.length || document.querySelector("#journal-no-results").hidden) throw new Error("Task filter did not combine with text search");
+                    search.value = "";
+                    taskFilter.value = [...taskFilter.options].find((option) => option.textContent.includes("Вторая задача дневника")).value;
+                    taskFilter.dispatchEvent(new Event("change", { bubbles: true }));
+                    if (journal.querySelectorAll(".journal-entry").length !== 4) throw new Error("Switching the selected diary task failed");
+                    taskFilter.value = "";
+                    taskFilter.dispatchEvent(new Event("change", { bubbles: true }));
                     search.value = "Новая задача";
                     search.dispatchEvent(new Event("input", { bubbles: true }));
                     if (journal.querySelectorAll(".journal-entry").length !== 2) throw new Error("Diary search failed");
@@ -217,7 +238,7 @@ function createWindow() {
                     document.querySelector("#journal-to").dispatchEvent(new Event("input", { bubbles: true }));
                     if (journal.children.length || document.querySelector("#journal-no-results").hidden) throw new Error("Diary date filter failed");
                     document.querySelector("#journal-reset").click();
-                    if (projectFilter.value || search.value || document.querySelector("#journal-to").value
+                    if (projectFilter.value || taskFilter.value || search.value || document.querySelector("#journal-to").value
                       || journal.querySelectorAll(".journal-entry").length !== 7) throw new Error("Diary filters did not reset together");
                     journal.querySelector("[data-task-id]").click();
                     if (document.querySelector("#tasks-page").hidden

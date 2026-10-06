@@ -1,4 +1,4 @@
-import { filterTaskJournal, journalProjects } from "./task-journal.js";
+import { filterTaskJournal, journalProjects, journalTasks } from "./task-journal.js";
 import { localDateKey } from "./calendar.js";
 import { intlLocale, t } from "./i18n.js";
 import { textSpan } from "./ui/dom.js";
@@ -44,6 +44,30 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
     elements.journalProject.value = choices.some((project) => project.id === selected) ? selected : "";
   }
 
+  function renderTaskFilter(entries) {
+    const selected = elements.journalTask.value;
+    const projectId = elements.journalProject.value;
+    const choices = journalTasks(entries, workspace.getProjects(), projectId);
+    const label = (task) => {
+      const name = projectId ? displayName(task.title) : `${displayName(task.title)} · ${displayName(task.projectName)}`;
+      return task.deleted ? t("{name} (удалена)", { name }) : name;
+    };
+    choices.sort((a, b) => label(a).localeCompare(label(b), intlLocale()));
+    const all = document.createElement("option");
+    all.value = "";
+    all.textContent = t("Все задачи");
+    const options = choices.map((task) => {
+      const option = document.createElement("option");
+      option.value = task.key;
+      option.textContent = label(task);
+      return option;
+    });
+    elements.journalTask.replaceChildren(all, ...options);
+    const task = choices.find((choice) => choice.key === selected);
+    elements.journalTask.value = task?.key ?? "";
+    return task;
+  }
+
   function entryRow(entry) {
     const row = document.createElement("article");
     row.className = `journal-entry ${entry.action}`;
@@ -79,9 +103,11 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
       ? t("История изменений ведётся с {date}. Время записей отображается в вашем часовом поясе.", { date: formatDay(new Date(startedAt)) }) : "";
     const allEntries = workspace.getTaskJournal();
     renderProjectFilter(allEntries);
+    const task = renderTaskFilter(allEntries);
     const filtered = filterTaskJournal(allEntries, {
       from: elements.journalFrom.value, to: elements.journalTo.value,
-      query: elements.journalSearch.value, projectId: elements.journalProject.value
+      query: elements.journalSearch.value,
+      projectId: elements.journalProject.value || task?.projectId || "", taskId: task?.id ?? ""
     });
     elements.journalEmpty.hidden = allEntries.length > 0;
     elements.journalNoResults.hidden = !allEntries.length || filtered.length > 0;
@@ -112,11 +138,16 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
   });
   elements.journalFilters.addEventListener("submit", (event) => event.preventDefault());
   elements.journalFilters.addEventListener("input", (event) => {
-    if (event.target === elements.journalProject) return;
+    if (event.target === elements.journalProject || event.target === elements.journalTask) return;
     visibleCount = 100;
     render();
   });
-  elements.journalProject.addEventListener("change", () => { visibleCount = 100; render(); });
+  elements.journalProject.addEventListener("change", () => {
+    elements.journalTask.value = "";
+    visibleCount = 100;
+    render();
+  });
+  elements.journalTask.addEventListener("change", () => { visibleCount = 100; render(); });
   elements.journalReset.addEventListener("click", () => {
     elements.journalFilters.reset();
     visibleCount = 100;

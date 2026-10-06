@@ -108,12 +108,39 @@ export function journalProjects(entries, projects, projectTypes) {
   return [...choices.values()];
 }
 
-export function filterTaskJournal(entries, { from = "", to = "", query = "", projectId = "" } = {}) {
+export function journalTasks(entries, projects, projectId = "") {
+  const choices = new Map();
+  const latest = new Map();
+  const currentProjects = new Map(projects.map((project) => [project.id, project]));
+  for (const entry of entries) {
+    const key = JSON.stringify([entry.projectId, entry.taskId]);
+    if (!latest.has(key) || entry.at >= latest.get(key)) {
+      latest.set(key, entry.at);
+      choices.set(key, {
+        key, id: entry.taskId, title: entry.taskTitle, projectId: entry.projectId,
+        projectName: currentProjects.get(entry.projectId)?.name ?? entry.projectName, deleted: true
+      });
+    }
+  }
+  for (const project of projects) {
+    for (const task of project.tasks) {
+      const key = JSON.stringify([project.id, task.id]);
+      choices.set(key, {
+        key, id: task.id, title: task.title, projectId: project.id,
+        projectName: project.name, deleted: false
+      });
+    }
+  }
+  return [...choices.values()].filter((task) => !projectId || task.projectId === projectId);
+}
+
+export function filterTaskJournal(entries, { from = "", to = "", query = "", projectId = "", taskId = "" } = {}) {
   const search = query.trim().toLocaleLowerCase();
   return entries.map((entry, index) => ({ entry, index })).filter(({ entry }) => {
     const day = localDateKey(new Date(entry.at));
     const content = `${entry.taskTitle} ${entry.projectName} ${entry.typeName}`.toLocaleLowerCase();
     return (!projectId || entry.projectId === projectId)
+      && (!taskId || entry.taskId === taskId)
       && (!from || day >= from) && (!to || day <= to) && (!search || content.includes(search));
   }).sort((a, b) => b.entry.at.localeCompare(a.entry.at) || b.index - a.index).map(({ entry }) => entry);
 }
