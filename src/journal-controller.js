@@ -1,4 +1,4 @@
-import { filterTaskJournal } from "./task-journal.js";
+import { filterTaskJournal, journalProjects } from "./task-journal.js";
 import { localDateKey } from "./calendar.js";
 import { intlLocale, t } from "./i18n.js";
 import { textSpan } from "./ui/dom.js";
@@ -21,6 +21,27 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
 
   function openTask(projectId, taskId) {
     if (workspace.openTask(projectId, taskId)) onOpenTask();
+  }
+
+  function renderProjectFilter(entries) {
+    const selected = elements.journalProject.value;
+    const choices = journalProjects(entries, workspace.getProjects(), workspace.getProjectTypes());
+    const label = (project) => {
+      const name = [displayType(project.typeId, project.typeName), displayName(project.name)].filter(Boolean).join(" · ");
+      return project.deleted ? t("{name} (удалён)", { name }) : name;
+    };
+    choices.sort((a, b) => label(a).localeCompare(label(b), intlLocale()));
+    const all = document.createElement("option");
+    all.value = "";
+    all.textContent = t("Все проекты");
+    const options = choices.map((project) => {
+      const option = document.createElement("option");
+      option.value = project.id;
+      option.textContent = label(project);
+      return option;
+    });
+    elements.journalProject.replaceChildren(all, ...options);
+    elements.journalProject.value = choices.some((project) => project.id === selected) ? selected : "";
   }
 
   function entryRow(entry) {
@@ -57,8 +78,10 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
     elements.journalSince.textContent = startedAt
       ? t("История изменений ведётся с {date}. Время записей отображается в вашем часовом поясе.", { date: formatDay(new Date(startedAt)) }) : "";
     const allEntries = workspace.getTaskJournal();
+    renderProjectFilter(allEntries);
     const filtered = filterTaskJournal(allEntries, {
-      from: elements.journalFrom.value, to: elements.journalTo.value, query: elements.journalSearch.value
+      from: elements.journalFrom.value, to: elements.journalTo.value,
+      query: elements.journalSearch.value, projectId: elements.journalProject.value
     });
     elements.journalEmpty.hidden = allEntries.length > 0;
     elements.journalNoResults.hidden = !allEntries.length || filtered.length > 0;
@@ -88,7 +111,12 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
     if (button) openTask(button.dataset.projectId, button.dataset.taskId);
   });
   elements.journalFilters.addEventListener("submit", (event) => event.preventDefault());
-  elements.journalFilters.addEventListener("input", () => { visibleCount = 100; render(); });
+  elements.journalFilters.addEventListener("input", (event) => {
+    if (event.target === elements.journalProject) return;
+    visibleCount = 100;
+    render();
+  });
+  elements.journalProject.addEventListener("change", () => { visibleCount = 100; render(); });
   elements.journalReset.addEventListener("click", () => {
     elements.journalFilters.reset();
     visibleCount = 100;

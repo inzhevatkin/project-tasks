@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createProject, createTask, normalizeWorkspace } from "../src/models.js";
-import { changeTaskStatus, filterTaskJournal, recordTaskDeletion, recordTaskEvent, workingTask } from "../src/task-journal.js";
+import { changeTaskStatus, filterTaskJournal, journalProjects, recordTaskDeletion, recordTaskEvent, workingTask } from "../src/task-journal.js";
 import { localDateKey } from "../src/calendar.js";
 
 function fixture() {
@@ -94,4 +94,30 @@ test("date filters use local days, search snapshots and retain transition order"
   assert.deepEqual(filterTaskJournal(workspace.taskJournal, { from: day, to: day, query: "первая" }).map((entry) => entry.action), ["started", "created"]);
   assert.equal(filterTaskJournal(workspace.taskJournal, { query: "другой проект" }).length, 0);
   assert.equal(filterTaskJournal(workspace.taskJournal)[0].action, "completed");
+});
+
+test("project filter uses identity across renames and deletion, together with date and text filters", () => {
+  const { workspace, project, first } = fixture();
+  const other = createProject(project.name);
+  const otherTask = createTask(first.title);
+  other.tasks.push(otherTask);
+  workspace.projects.push(other);
+  const date = new Date(2026, 9, 6, 10).toISOString();
+  recordTaskEvent(workspace, project, first, "created", date);
+  recordTaskEvent(workspace, other, otherTask, "created", date);
+  project.name = "Новое название";
+  recordTaskEvent(workspace, project, first, "completed", new Date(2026, 9, 6, 11).toISOString());
+  const day = localDateKey(new Date(date));
+  assert.deepEqual(filterTaskJournal(workspace.taskJournal, { projectId: project.id, from: day, to: day, query: "первая" }).map((entry) => entry.action), ["completed", "created"]);
+  assert.equal(filterTaskJournal(workspace.taskJournal, { projectId: other.id }).length, 1);
+  assert.equal(filterTaskJournal(workspace.taskJournal, { projectId: project.id, to: "2000-01-01" }).length, 0);
+  assert.equal(filterTaskJournal(workspace.taskJournal, { projectId: project.id, query: "нет такой задачи" }).length, 0);
+  const currentChoices = journalProjects(workspace.taskJournal, workspace.projects, workspace.projectTypes);
+  assert.equal(currentChoices.length, 2);
+  assert.equal(currentChoices.find((choice) => choice.id === project.id).name, "Новое название");
+  workspace.projects = [other];
+  const deleted = journalProjects([...workspace.taskJournal].reverse(), workspace.projects, workspace.projectTypes).find((choice) => choice.id === project.id);
+  assert.equal(deleted.deleted, true);
+  assert.equal(deleted.name, "Новое название");
+  assert.equal(filterTaskJournal(workspace.taskJournal, { projectId: project.id }).length, 2);
 });

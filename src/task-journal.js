@@ -84,11 +84,36 @@ export function normalizeTaskJournal(value) {
     });
 }
 
-export function filterTaskJournal(entries, { from = "", to = "", query = "" } = {}) {
+// Use IDs to keep renamed projects together and distinguish matching names.
+// Historical snapshots also make deleted projects available in the filter.
+export function journalProjects(entries, projects, projectTypes) {
+  const choices = new Map();
+  const latest = new Map();
+  for (const entry of entries) {
+    if (!latest.has(entry.projectId) || entry.at >= latest.get(entry.projectId)) {
+      latest.set(entry.projectId, entry.at);
+      choices.set(entry.projectId, {
+        id: entry.projectId, name: entry.projectName,
+        typeId: entry.typeId, typeName: entry.typeName, deleted: true
+      });
+    }
+  }
+  const types = new Map(projectTypes.map((type) => [type.id, type.name]));
+  for (const project of projects) {
+    choices.set(project.id, {
+      id: project.id, name: project.name, typeId: project.typeId,
+      typeName: types.get(project.typeId) ?? "", deleted: false
+    });
+  }
+  return [...choices.values()];
+}
+
+export function filterTaskJournal(entries, { from = "", to = "", query = "", projectId = "" } = {}) {
   const search = query.trim().toLocaleLowerCase();
   return entries.map((entry, index) => ({ entry, index })).filter(({ entry }) => {
     const day = localDateKey(new Date(entry.at));
     const content = `${entry.taskTitle} ${entry.projectName} ${entry.typeName}`.toLocaleLowerCase();
-    return (!from || day >= from) && (!to || day <= to) && (!search || content.includes(search));
+    return (!projectId || entry.projectId === projectId)
+      && (!from || day >= from) && (!to || day <= to) && (!search || content.includes(search));
   }).sort((a, b) => b.entry.at.localeCompare(a.entry.at) || b.index - a.index).map(({ entry }) => entry);
 }

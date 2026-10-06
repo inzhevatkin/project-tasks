@@ -390,6 +390,8 @@ export function createWorkspaceController(elements) {
     initialize,
     flushSave,
     getTaskJournal: () => state.taskJournal,
+    getProjects: () => state.projects,
+    getProjectTypes: () => state.projectTypes,
     getJournalStartedAt: () => state.journalStartedAt,
     subscribeJournal(listener) { journalListeners.add(listener); return () => journalListeners.delete(listener); },
     openTask(projectId, taskId) {

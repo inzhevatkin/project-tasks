@@ -22,7 +22,12 @@ if (isSmokeTest) {
       id: "smoke-project", name: "Проверочный проект", typeId: "work",
       tasks: [{ id: "smoke-task", title: "Проверочная задача", comment: "first\n**bold** and *italic* <img src=x>", completed: false }]
     }],
-    calendarEvents: [{ id: "smoke-event", title: "Утреннее событие", date: today, time: "10:00", annual: false }]
+    calendarEvents: [{ id: "smoke-event", title: "Утреннее событие", date: today, time: "10:00", annual: false }],
+    taskJournal: [{
+      id: "smoke-archived-entry", action: "created", at: "2026-09-01T03:00:00.000Z",
+      taskId: "smoke-archived-task", taskTitle: "Архивная задача",
+      projectId: "smoke-archived-project", projectName: "Архивный проект", typeId: "work", typeName: "Работа"
+    }]
   }));
   app.on("quit", () => {
     try { rmSync(testData, { recursive: true, force: true }); }
@@ -186,9 +191,24 @@ function createWindow() {
                     document.querySelector("#show-journal").click();
                     const journal = document.querySelector("#journal-list");
                     const actions = [...journal.querySelectorAll(".journal-entry")].map((row) => row.dataset.action);
-                    if (document.querySelector("#journal-page").hidden || actions.length !== 6
+                    if (document.querySelector("#journal-page").hidden || actions.length !== 7
                       || !["created", "started", "paused", "completed", "reopened"].every((action) => actions.includes(action))
                       || !journal.querySelector("time[datetime]")) throw new Error("Diary transitions or dated entries failed");
+                    const projectFilter = document.querySelector("#journal-project");
+                    if (projectFilter.options.length !== 3
+                      || ![...projectFilter.options].some((option) => option.value === "smoke-archived-project" && option.textContent.includes("Архивный проект"))) {
+                      throw new Error("Diary project choices omitted a deleted project");
+                    }
+                    projectFilter.value = "smoke-archived-project";
+                    projectFilter.dispatchEvent(new Event("change", { bubbles: true }));
+                    if (journal.querySelectorAll(".journal-entry").length !== 1 || !journal.textContent.includes("Архивная задача")) {
+                      throw new Error("Diary project filter failed for a deleted project");
+                    }
+                    projectFilter.value = "smoke-project";
+                    projectFilter.dispatchEvent(new Event("change", { bubbles: true }));
+                    if (journal.querySelectorAll(".journal-entry").length !== 6 || projectFilter.value !== "smoke-project") {
+                      throw new Error("Diary project filter failed for a current project");
+                    }
                     const search = document.querySelector("#journal-search");
                     search.value = "Новая задача";
                     search.dispatchEvent(new Event("input", { bubbles: true }));
@@ -197,6 +217,8 @@ function createWindow() {
                     document.querySelector("#journal-to").dispatchEvent(new Event("input", { bubbles: true }));
                     if (journal.children.length || document.querySelector("#journal-no-results").hidden) throw new Error("Diary date filter failed");
                     document.querySelector("#journal-reset").click();
+                    if (projectFilter.value || search.value || document.querySelector("#journal-to").value
+                      || journal.querySelectorAll(".journal-entry").length !== 7) throw new Error("Diary filters did not reset together");
                     journal.querySelector("[data-task-id]").click();
                     if (document.querySelector("#tasks-page").hidden
                       || document.querySelector("#task-title").value !== "Вторая задача дневника") throw new Error("Opening a diary task failed");
@@ -223,7 +245,7 @@ function createWindow() {
             const saved = JSON.parse(readFileSync(join(app.getPath("userData"), "projects.json"), "utf8"));
             const task = saved.projects[0].tasks.find((item) => item.title === "Вторая задача дневника");
             if (saved.version !== 4 || task?.status !== "in_progress"
-              || saved.taskJournal.length !== 7 || saved.taskJournal.at(-1).action !== "started"
+              || saved.taskJournal.length !== 8 || saved.taskJournal.at(-1).action !== "started"
               || saved.projects[0].tasks[0].comment !== "+ alpha **beta**"
               || saved.calendarEvents.length !== 2) throw new Error("Closing the app lost journal or workspace data");
             console.log("ProjectTasks smoke passed: calendar, comments, task states, diary filters, and save before quit");
