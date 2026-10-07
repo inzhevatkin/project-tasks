@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createProject, createTask, normalizeWorkspace } from "../src/models.js";
-import { changeTaskStatus, filterTaskJournal, journalProjects, journalTasks, recordTaskDeletion, recordTaskEvent, workingTask } from "../src/task-journal.js";
+import { changeTaskStatus, filterTaskJournal, journalTypes, journalProjects, journalTasks, recordTaskDeletion, recordTaskEvent, workingTask } from "../src/task-journal.js";
 import { localDateKey } from "../src/calendar.js";
 
 function fixture() {
@@ -148,4 +148,40 @@ test("task choices follow their project and preserve renamed or deleted task his
   assert.equal(deleted.deleted, true);
   assert.equal(deleted.title, "Новое название задачи");
   assert.equal(deleted.projectId, project.id);
+});
+
+test("section, project and task filters cascade by identity and combine with dates and search", () => {
+  const { workspace, project, first } = fixture();
+  workspace.projectTypes.push({ id: "home", name: "Работа" }, { id: "empty", name: "Пустой" });
+  const home = createProject(project.name, "home");
+  const duplicate = { ...createTask(first.title), id: first.id };
+  home.tasks.push(duplicate);
+  workspace.projects.push(home);
+  const date = new Date(2026, 9, 7, 10).toISOString();
+  recordTaskEvent(workspace, project, first, "created", date);
+  recordTaskEvent(workspace, home, duplicate, "created", date);
+  workspace.projectTypes[0].name = "Офис";
+  recordTaskEvent(workspace, project, first, "completed", new Date(2026, 9, 7, 11).toISOString());
+  assert.equal(journalTypes(workspace.taskJournal, workspace.projectTypes).length, 3);
+  assert.equal(journalTypes(workspace.taskJournal, workspace.projectTypes).find((type) => type.id === "work").name, "Офис");
+  assert.deepEqual(journalProjects(workspace.taskJournal, workspace.projects, workspace.projectTypes, "home").map((choice) => choice.id), [home.id]);
+  assert.deepEqual(journalTasks(workspace.taskJournal, workspace.projects, "", "home").map((choice) => choice.projectId), [home.id]);
+  assert.equal(journalTasks(workspace.taskJournal, workspace.projects, project.id, "home").length, 0);
+  const day = localDateKey(new Date(date));
+  assert.deepEqual(filterTaskJournal(workspace.taskJournal, {
+    typeId: "work", projectId: project.id, taskId: first.id, from: day, to: day, query: "первая"
+  }).map((entry) => entry.action), ["completed", "created"]);
+  assert.equal(filterTaskJournal(workspace.taskJournal, { typeId: "home" }).length, 1);
+  assert.equal(filterTaskJournal(workspace.taskJournal, { typeId: "home", projectId: project.id }).length, 0);
+  assert.equal(filterTaskJournal(workspace.taskJournal, { typeId: "empty" }).length, 0);
+  assert.equal(filterTaskJournal(workspace.taskJournal, { typeId: "work", to: "2000-01-01" }).length, 0);
+  assert.equal(filterTaskJournal(workspace.taskJournal, { typeId: "work", query: "неизвестная" }).length, 0);
+  workspace.projects = [home];
+  workspace.projectTypes = workspace.projectTypes.filter((type) => type.id !== "work");
+  const entries = [...workspace.taskJournal].reverse();
+  const deleted = journalTypes(entries, workspace.projectTypes).find((type) => type.id === "work");
+  assert.deepEqual(deleted, { id: "work", name: "Офис", deleted: true });
+  assert.equal(journalProjects(entries, workspace.projects, workspace.projectTypes, "work")[0].deleted, true);
+  assert.equal(journalTasks(entries, workspace.projects, "", "work")[0].deleted, true);
+  assert.equal(filterTaskJournal(entries, { typeId: "work", projectId: project.id, taskId: first.id }).length, 2);
 });

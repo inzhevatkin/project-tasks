@@ -23,6 +23,8 @@ const translations = {
   "Для старых задач восстановлены только известные даты создания. Даты прежних завершений не сохранялись.": ["Only known creation dates were recovered for older tasks. Previous completion dates were not recorded.", "旧任务仅恢复了已知的创建日期。以前的完成日期未被记录。"],
   "Поиск в дневнике": ["Search the diary", "搜索工作日志"],
   "Проект": ["Project", "项目"],
+  "Раздел": ["Section", "分类"],
+  "Все разделы": ["All sections", "所有分类"],
   "Все проекты": ["All projects", "所有项目"],
   "Задача": ["Task", "任务"],
   "Все задачи": ["All tasks", "所有任务"],

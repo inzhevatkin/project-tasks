@@ -1,4 +1,4 @@
-import { filterTaskJournal, journalProjects, journalTasks } from "./task-journal.js";
+import { filterTaskJournal, journalTypes, journalProjects, journalTasks } from "./task-journal.js";
 import { localDateKey } from "./calendar.js";
 import { intlLocale, t } from "./i18n.js";
 import { textSpan } from "./ui/dom.js";
@@ -23,9 +23,30 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
     if (workspace.openTask(projectId, taskId)) onOpenTask();
   }
 
+  function renderTypeFilter(entries) {
+    const selected = elements.journalType.value;
+    const choices = journalTypes(entries, workspace.getProjectTypes());
+    const label = (type) => {
+      const name = displayType(type.id, type.name) || t("Без названия");
+      return type.deleted ? t("{name} (удалён)", { name }) : name;
+    };
+    choices.sort((a, b) => label(a).localeCompare(label(b), intlLocale()));
+    const all = document.createElement("option");
+    all.value = "";
+    all.textContent = t("Все разделы");
+    const options = choices.map((type) => {
+      const option = document.createElement("option");
+      option.value = type.id;
+      option.textContent = label(type);
+      return option;
+    });
+    elements.journalType.replaceChildren(all, ...options);
+    elements.journalType.value = choices.some((type) => type.id === selected) ? selected : "";
+  }
+
   function renderProjectFilter(entries) {
     const selected = elements.journalProject.value;
-    const choices = journalProjects(entries, workspace.getProjects(), workspace.getProjectTypes());
+    const choices = journalProjects(entries, workspace.getProjects(), workspace.getProjectTypes(), elements.journalType.value);
     const label = (project) => {
       const name = [displayType(project.typeId, project.typeName), displayName(project.name)].filter(Boolean).join(" · ");
       return project.deleted ? t("{name} (удалён)", { name }) : name;
@@ -47,7 +68,7 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
   function renderTaskFilter(entries) {
     const selected = elements.journalTask.value;
     const projectId = elements.journalProject.value;
-    const choices = journalTasks(entries, workspace.getProjects(), projectId);
+    const choices = journalTasks(entries, workspace.getProjects(), projectId, elements.journalType.value);
     const label = (task) => {
       const name = projectId ? displayName(task.title) : `${displayName(task.title)} · ${displayName(task.projectName)}`;
       return task.deleted ? t("{name} (удалена)", { name }) : name;
@@ -102,11 +123,13 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
     elements.journalSince.textContent = startedAt
       ? t("История изменений ведётся с {date}. Время записей отображается в вашем часовом поясе.", { date: formatDay(new Date(startedAt)) }) : "";
     const allEntries = workspace.getTaskJournal();
+    renderTypeFilter(allEntries);
     renderProjectFilter(allEntries);
     const task = renderTaskFilter(allEntries);
     const filtered = filterTaskJournal(allEntries, {
       from: elements.journalFrom.value, to: elements.journalTo.value,
       query: elements.journalSearch.value,
+      typeId: elements.journalType.value,
       projectId: elements.journalProject.value || task?.projectId || "", taskId: task?.id ?? ""
     });
     elements.journalEmpty.hidden = allEntries.length > 0;
@@ -138,7 +161,13 @@ export function createJournalController(elements, workspace, { onOpenTask = () =
   });
   elements.journalFilters.addEventListener("submit", (event) => event.preventDefault());
   elements.journalFilters.addEventListener("input", (event) => {
-    if (event.target === elements.journalProject || event.target === elements.journalTask) return;
+    if ([elements.journalType, elements.journalProject, elements.journalTask].includes(event.target)) return;
+    visibleCount = 100;
+    render();
+  });
+  elements.journalType.addEventListener("change", () => {
+    elements.journalProject.value = "";
+    elements.journalTask.value = "";
     visibleCount = 100;
     render();
   });

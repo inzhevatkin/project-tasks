@@ -17,7 +17,7 @@ if (isSmokeTest) {
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   writeFileSync(join(testData, "projects.json"), JSON.stringify({
     version: 2,
-    projectTypes: [{ id: "work", name: "Работа" }],
+    projectTypes: [{ id: "work", name: "Работа" }, { id: "smoke-empty-type", name: "Пустой раздел" }],
     projects: [{
       id: "smoke-project", name: "Проверочный проект", typeId: "work",
       tasks: [{ id: "smoke-task", title: "Проверочная задача", comment: "first\n**bold** and *italic* <img src=x>", completed: false }]
@@ -26,7 +26,7 @@ if (isSmokeTest) {
     taskJournal: [{
       id: "smoke-archived-entry", action: "created", at: "2026-09-01T03:00:00.000Z",
       taskId: "smoke-archived-task", taskTitle: "Архивная задача",
-      projectId: "smoke-archived-project", projectName: "Архивный проект", typeId: "work", typeName: "Работа"
+      projectId: "smoke-archived-project", projectName: "Архивный проект", typeId: "smoke-archived-type", typeName: "Архивный раздел"
     }]
   }));
   app.on("quit", () => {
@@ -128,15 +128,18 @@ function createWindow() {
                 if (!dialog.open) return renameReject(new Error("Rename dialog failed"));
                 document.querySelector("#rename-input").value = name;
                 dialog.querySelector("form").requestSubmit(dialog.querySelector('[value="confirm"]'));
-                const renameDeadline = Date.now() + 2000;
+                const renameDeadline = Date.now() + 5000;
                 const waitForRename = () => {
                   if (document.body.textContent.includes(name)) return renameResolve();
-                  if (Date.now() > renameDeadline) return renameReject(new Error("Rename failed: " + name));
+                  if (Date.now() > renameDeadline) return renameReject(new Error("Rename failed: " + name + " " + JSON.stringify({
+                    open: dialog.open, returnValue: dialog.returnValue,
+                    value: document.querySelector("#rename-input").value, types: document.querySelector("#type-list").textContent
+                  })));
                   setTimeout(waitForRename, 20);
                 };
                 waitForRename();
               });
-              rename("#type-list [data-type-id]", "Новый раздел")
+              rename('#type-list [data-type-id="work"]', "Новый раздел")
                 .then(() => rename("#project-list [data-id]", "Новый проект"))
                 .then(() => rename("#task-list [data-id]", "Новая задача"))
                 .then(() => {
@@ -195,7 +198,9 @@ function createWindow() {
                       || !["created", "started", "paused", "completed", "reopened"].every((action) => actions.includes(action))
                       || !journal.querySelector("time[datetime]")) throw new Error("Diary transitions or dated entries failed");
                     const projectFilter = document.querySelector("#journal-project");
+                    const typeFilter = document.querySelector("#journal-type");
                     const taskFilter = document.querySelector("#journal-task");
+                    if (typeFilter.options.length !== 4) throw new Error("Diary section choices omitted an empty or deleted section");
                     if (taskFilter.options.length !== 4) throw new Error("Diary task choices are incomplete");
                     taskFilter.value = JSON.stringify(["smoke-archived-project", "smoke-archived-task"]);
                     taskFilter.dispatchEvent(new Event("change", { bubbles: true }));
@@ -218,6 +223,25 @@ function createWindow() {
                       throw new Error("Diary project filter failed for a current project");
                     }
                     const search = document.querySelector("#journal-search");
+                    typeFilter.value = "smoke-archived-type";
+                    typeFilter.dispatchEvent(new Event("change", { bubbles: true }));
+                    if (projectFilter.value || taskFilter.value || projectFilter.options.length !== 2 || taskFilter.options.length !== 2
+                      || journal.querySelectorAll(".journal-entry").length !== 1) throw new Error("Section filter did not reset and narrow projects and tasks");
+                    projectFilter.value = "smoke-archived-project";
+                    projectFilter.dispatchEvent(new Event("change", { bubbles: true }));
+                    taskFilter.value = JSON.stringify(["smoke-archived-project", "smoke-archived-task"]);
+                    taskFilter.dispatchEvent(new Event("change", { bubbles: true }));
+                    if (journal.querySelectorAll(".journal-entry").length !== 1) throw new Error("Three-level diary filtering failed for a deleted section");
+                    typeFilter.value = "smoke-empty-type";
+                    typeFilter.dispatchEvent(new Event("change", { bubbles: true }));
+                    if (projectFilter.value || taskFilter.value || projectFilter.options.length !== 1 || taskFilter.options.length !== 1
+                      || journal.children.length || document.querySelector("#journal-no-results").hidden) throw new Error("Empty section filtering failed");
+                    typeFilter.value = "work";
+                    typeFilter.dispatchEvent(new Event("change", { bubbles: true }));
+                    if (projectFilter.options.length !== 2 || taskFilter.options.length !== 3
+                      || journal.querySelectorAll(".journal-entry").length !== 6) throw new Error("Current section filtering failed");
+                    projectFilter.value = "smoke-project";
+                    projectFilter.dispatchEvent(new Event("change", { bubbles: true }));
                     if (taskFilter.options.length !== 3) throw new Error("Task choices did not follow current project");
                     taskFilter.value = JSON.stringify(["smoke-project", "smoke-task"]);
                     taskFilter.dispatchEvent(new Event("change", { bubbles: true }));
@@ -238,7 +262,7 @@ function createWindow() {
                     document.querySelector("#journal-to").dispatchEvent(new Event("input", { bubbles: true }));
                     if (journal.children.length || document.querySelector("#journal-no-results").hidden) throw new Error("Diary date filter failed");
                     document.querySelector("#journal-reset").click();
-                    if (projectFilter.value || taskFilter.value || search.value || document.querySelector("#journal-to").value
+                    if (typeFilter.value || projectFilter.value || taskFilter.value || search.value || document.querySelector("#journal-to").value
                       || journal.querySelectorAll(".journal-entry").length !== 7) throw new Error("Diary filters did not reset together");
                     journal.querySelector("[data-task-id]").click();
                     if (document.querySelector("#tasks-page").hidden

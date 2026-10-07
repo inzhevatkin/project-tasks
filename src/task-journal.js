@@ -86,7 +86,20 @@ export function normalizeTaskJournal(value) {
 
 // Use IDs to keep renamed projects together and distinguish matching names.
 // Historical snapshots also make deleted projects available in the filter.
-export function journalProjects(entries, projects, projectTypes) {
+export function journalTypes(entries, projectTypes) {
+  const choices = new Map();
+  const latest = new Map();
+  for (const entry of entries) {
+    if (entry.typeId && (!latest.has(entry.typeId) || entry.at >= latest.get(entry.typeId))) {
+      latest.set(entry.typeId, entry.at);
+      choices.set(entry.typeId, { id: entry.typeId, name: entry.typeName, deleted: true });
+    }
+  }
+  for (const type of projectTypes) choices.set(type.id, { ...type, deleted: false });
+  return [...choices.values()];
+}
+
+export function journalProjects(entries, projects, projectTypes, typeId = "") {
   const choices = new Map();
   const latest = new Map();
   for (const entry of entries) {
@@ -105,20 +118,22 @@ export function journalProjects(entries, projects, projectTypes) {
       typeName: types.get(project.typeId) ?? "", deleted: false
     });
   }
-  return [...choices.values()];
+  return [...choices.values()].filter((project) => !typeId || project.typeId === typeId);
 }
 
-export function journalTasks(entries, projects, projectId = "") {
+export function journalTasks(entries, projects, projectId = "", typeId = "") {
   const choices = new Map();
   const latest = new Map();
   const currentProjects = new Map(projects.map((project) => [project.id, project]));
+  const projectChoices = new Map(journalProjects(entries, projects, []).map((project) => [project.id, project]));
   for (const entry of entries) {
     const key = JSON.stringify([entry.projectId, entry.taskId]);
     if (!latest.has(key) || entry.at >= latest.get(key)) {
       latest.set(key, entry.at);
       choices.set(key, {
         key, id: entry.taskId, title: entry.taskTitle, projectId: entry.projectId,
-        projectName: currentProjects.get(entry.projectId)?.name ?? entry.projectName, deleted: true
+        projectName: currentProjects.get(entry.projectId)?.name ?? entry.projectName,
+        typeId: projectChoices.get(entry.projectId)?.typeId ?? entry.typeId, deleted: true
       });
     }
   }
@@ -127,19 +142,21 @@ export function journalTasks(entries, projects, projectId = "") {
       const key = JSON.stringify([project.id, task.id]);
       choices.set(key, {
         key, id: task.id, title: task.title, projectId: project.id,
-        projectName: project.name, deleted: false
+        projectName: project.name, typeId: project.typeId, deleted: false
       });
     }
   }
-  return [...choices.values()].filter((task) => !projectId || task.projectId === projectId);
+  return [...choices.values()].filter((task) => (!projectId || task.projectId === projectId)
+    && (!typeId || task.typeId === typeId));
 }
 
-export function filterTaskJournal(entries, { from = "", to = "", query = "", projectId = "", taskId = "" } = {}) {
+export function filterTaskJournal(entries, { from = "", to = "", query = "", typeId = "", projectId = "", taskId = "" } = {}) {
   const search = query.trim().toLocaleLowerCase();
   return entries.map((entry, index) => ({ entry, index })).filter(({ entry }) => {
     const day = localDateKey(new Date(entry.at));
     const content = `${entry.taskTitle} ${entry.projectName} ${entry.typeName}`.toLocaleLowerCase();
-    return (!projectId || entry.projectId === projectId)
+    return (!typeId || entry.typeId === typeId)
+      && (!projectId || entry.projectId === projectId)
       && (!taskId || entry.taskId === taskId)
       && (!from || day >= from) && (!to || day <= to) && (!search || content.includes(search));
   }).sort((a, b) => b.entry.at.localeCompare(a.entry.at) || b.index - a.index).map(({ entry }) => entry);

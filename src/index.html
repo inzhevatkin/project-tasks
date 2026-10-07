@@ -170,9 +170,10 @@
       <p id="journal-since" class="journal-hint"></p>
       <p class="journal-hint">Для старых задач восстановлены только известные даты создания. Даты прежних завершений не сохранялись.</p>
       <form id="journal-filters" class="journal-filters" role="search" aria-label="Поиск в дневнике">
-        <div class="journal-search"><label for="journal-search">Задача, проект или раздел</label><input id="journal-search" type="search" placeholder="Поиск в истории" autocomplete="off" /></div>
+        <div class="journal-type-filter"><label for="journal-type">Раздел</label><select id="journal-type"><option value="">Все разделы</option></select></div>
         <div class="journal-project-filter"><label for="journal-project">Проект</label><select id="journal-project"><option value="">Все проекты</option></select></div>
         <div class="journal-task-filter"><label for="journal-task">Задача</label><select id="journal-task"><option value="">Все задачи</option></select></div>
+        <div class="journal-search"><label for="journal-search">Задача, проект или раздел</label><input id="journal-search" type="search" placeholder="Поиск в истории" autocomplete="off" /></div>
         <div><label for="journal-from">С даты</label><input id="journal-from" type="date" /></div>
         <div><label for="journal-to">По дату</label><input id="journal-to" type="date" /></div>
         <button id="journal-reset" class="secondary" type="button">Сбросить фильтры</button>
