@@ -1,4 +1,4 @@
-export function initializeTheme(elements) {
+export async function initializeTheme(elements) {
   function applyTheme(theme) {
     const isDark = theme === "dark";
     document.documentElement.dataset.theme = theme;
@@ -6,6 +6,7 @@ export function initializeTheme(elements) {
     const label = t(isDark ? "Включить светлую тему" : "Включить тёмную тему");
     elements.themeToggle.setAttribute("aria-label", label);
     elements.themeToggle.title = label;
+    return window.projectTasks.setTheme(theme);
   }
 
   function initialTheme() {
@@ -15,13 +16,17 @@ export function initializeTheme(elements) {
   }
 
 
-  elements.themeToggle.addEventListener("click", () => {
+  elements.themeToggle.addEventListener("click", async () => {
     const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     localStorage.setItem("projectTasks.theme", nextTheme);
-    applyTheme(nextTheme);
+    try {
+      await applyTheme(nextTheme);
+    } catch (error) {
+      console.error("Could not synchronize the window theme:", error);
+    }
   });
 
 
-  applyTheme(initialTheme());
+  await applyTheme(initialTheme());
 }
 import { t } from "../i18n.js";

@@ -1,8 +1,9 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, nativeTheme } from "electron";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createWorkspaceStore } from "./workspace-store.js";
 import { initializeUpdates } from "./update-controller.js";
+import { initializeNativeTheme } from "./theme-controller.js";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -280,6 +281,21 @@ function createWindow() {
           };
           check();
         })`);
+        const initialTheme = await window.webContents.executeJavaScript('document.documentElement.dataset.theme');
+        for (const theme of ["dark", "light", process.env.PROJECT_TASKS_SMOKE_REVIEW ? "dark" : initialTheme]) {
+          await window.webContents.executeJavaScript(`if (document.documentElement.dataset.theme !== "${theme}") document.querySelector("#theme-toggle").click()`);
+          const themeDeadline = Date.now() + 5000;
+          while (nativeTheme.themeSource !== theme && Date.now() < themeDeadline) {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+          }
+          if (nativeTheme.themeSource !== theme || nativeTheme.shouldUseDarkColors !== (theme === "dark")) {
+            throw new Error("Native window theme did not follow the application: " + theme);
+          }
+        }
+        if (process.env.PROJECT_TASKS_SMOKE_REVIEW) {
+          window.setTitle("TiM — проверка темы");
+          await new Promise((resolve) => setTimeout(resolve, 60000));
+        }
         if (process.env.PROJECT_TASKS_SMOKE_SCREENSHOT) {
           window.setSize(940, 760);
           await window.webContents.executeJavaScript('document.querySelector("#show-journal").click(); new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
@@ -321,6 +337,7 @@ app.whenReady().then(() => {
     }
   }
   initializeUpdates();
+  initializeNativeTheme({ ipcMain, nativeTheme, BrowserWindow });
   const store = createWorkspaceStore(join(app.getPath("userData"), "projects.json"));
   ipcMain.on("pomodoro:progress", (event, state) => {
     const window = BrowserWindow.fromWebContents(event.sender);

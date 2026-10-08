@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("projectTasks", {
   getAppInfo: () => ipcRenderer.invoke("app:info"),
+  setTheme: (theme) => ipcRenderer.invoke("app:theme", theme),
   getUpdateState: () => ipcRenderer.invoke("updates:state"),
   downloadUpdate: () => ipcRenderer.invoke("updates:download"),
   installUpdate: () => ipcRenderer.invoke("updates:install"),

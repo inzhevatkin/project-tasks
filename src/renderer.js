@@ -77,7 +77,7 @@ try {
   const appInfo = await window.projectTasks.getAppInfo();
   setLocale(appInfo.locale);
   localizeDocument();
-  initializeTheme(elements);
+  await initializeTheme(elements);
   window.projectTasks.onUpdateState(renderUpdateState);
   renderUpdateState(await window.projectTasks.getUpdateState());
   elements.aboutVersion.textContent = t("Версия {version}", { version: appInfo.version });
