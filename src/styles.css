@@ -86,6 +86,11 @@ button:disabled { cursor: default; opacity: .48; }
 .item-context-menu { position: fixed; z-index: 100; min-width: 150px; padding: 5px; background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / 25%); }
 .context-delete { width: 100%; padding: 9px 13px; color: var(--danger-text); background: transparent; text-align: left; }
 .context-delete:hover, .context-delete:focus-visible { background: var(--danger-bg); outline: none; }
+.context-task-statuses { padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px solid var(--soft-border); }
+.context-action { display: block; width: 100%; padding: 9px 13px; color: var(--text); background: transparent; text-align: left; }
+.context-action::before { content: ""; display: inline-block; width: 20px; }
+.context-action[aria-checked="true"]::before { content: "✓"; }
+.context-action:hover, .context-action:focus-visible { background: var(--surface-hover); outline: none; }
 .theme-toggle { display: grid; flex: 0 0 auto; width: 42px; height: 42px; place-items: center; padding: 0; color: var(--text); background: var(--surface); border: 1px solid var(--soft-border); font-size: 18px; }
 .theme-toggle:hover { background: var(--surface-hover); }
 .compact-form { margin-bottom: 10px; }

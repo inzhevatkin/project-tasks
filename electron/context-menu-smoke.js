@@ -29,7 +29,10 @@ export async function runContextMenuSmoke(window, app) {
     const context = (target, keyboard = false) => {
       target.dispatchEvent(keyboard ? new KeyboardEvent("keydown", { key: "F10", shiftKey: true, bubbles: true })
         : new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: innerWidth - 2, clientY: innerHeight - 2 }));
-      check(!menu.hidden && document.activeElement === document.querySelector("#context-delete"), "Context menu did not open or receive focus");
+      check(!menu.hidden && menu.contains(document.activeElement), "Context menu did not open or receive focus");
+      const isTask = target.classList.contains("task-item");
+      check(document.querySelector("#context-task-statuses").hidden !== isTask, "Status actions appeared for the wrong item type");
+      if (isTask) check(menu.querySelector('[aria-checked="true"]').dataset.taskStatus === target.dataset.status, "Current task status was not marked");
       const rect = menu.getBoundingClientRect();
       check(rect.right <= innerWidth && rect.bottom <= innerHeight, "Context menu overflowed the window");
     };
@@ -58,6 +61,23 @@ export async function runContextMenuSmoke(window, app) {
     add("#project-input", "#project-form", "Целевой проект");
     add("#task-input", "#task-form", "Первая удаляемая задача");
     add("#task-input", "#task-form", "Вторая удаляемая задача");
+    check(!document.querySelector("#task-status"), "Old status panel remains");
+    const changeStatus = (name, status) => {
+      context(item("#task-list", name));
+      document.querySelector('[data-task-status="' + status + '"]').click();
+      check(menu.hidden && item("#task-list", name).dataset.status === status, "Status action did not update its target");
+      check(document.querySelector("#task-title").value === "Вторая удаляемая задача", "Changing another task's status changed selection");
+    };
+    changeStatus("Первая удаляемая задача", "in_progress");
+    changeStatus("Первая удаляемая задача", "completed");
+    changeStatus("Первая удаляемая задача", "pending");
+    changeStatus("Первая удаляемая задача", "pending");
+    context(item("#task-list", "Первая удаляемая задача"), true);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+    check(document.activeElement.dataset.taskStatus === "in_progress", "Arrow key did not select the next status");
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true, cancelable: true }));
+    check(document.activeElement.id === "context-delete", "End did not focus Delete");
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
     await remove(item("#task-list", "Первая удаляемая задача"), false);
     check(document.querySelector("#task-list").children.length === 2, "Cancel deleted a task");
     await remove(item("#task-list", "Первая удаляемая задача"), true, true);
@@ -81,14 +101,15 @@ export async function runContextMenuSmoke(window, app) {
       && !document.querySelector("#task-list").children.length && document.querySelector("#details").hidden, "Last section deletion left orphaned items");
     document.querySelector("#show-journal").click();
     const rows = document.querySelectorAll("#journal-list .journal-entry");
-    check(rows.length === 8 && document.querySelectorAll('#journal-list [data-action="deleted"]').length === 4, "Deletion history was lost or duplicated");
+    check(rows.length === 11 && document.querySelectorAll('#journal-list [data-action="deleted"]').length === 4, "Status or deletion history was lost or duplicated");
   })()`);
   app.once("will-quit", () => {
     try {
       const saved = JSON.parse(readFileSync(join(app.getPath("userData"), "projects.json"), "utf8"));
       assert.deepEqual(saved.projectTypes, []);
       assert.deepEqual(saved.projects, []);
-      assert.equal(saved.taskJournal.length, 8);
+      assert.equal(saved.taskJournal.length, 11);
+      assert.deepEqual(saved.taskJournal.filter((entry) => ["started", "completed", "reopened"].includes(entry.action)).map((entry) => entry.action), ["started", "completed", "reopened"]);
       assert.equal(saved.calendarEvents.length, 1);
       assert.deepEqual(normalizeWorkspace(saved).projectTypes, []);
       console.log("Context menu smoke passed: cancel, exact targets, cascading deletion, empty workspace, and history persistence");

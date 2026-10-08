@@ -158,7 +158,7 @@ function createWindow() {
                 .then(() => rename("#task-list [data-id]", "Новая задача"))
                 .then(() => {
                   try {
-                    if (document.querySelector("#task-status").value !== "pending") throw new Error("Rename changed task state");
+                    if (document.querySelector("#task-status") || document.querySelector("#task-list .selected").dataset.status !== "pending") throw new Error("Rename changed task state or old status panel remains");
                     const editor = document.querySelector("#task-comment");
                     if (document.querySelector("#comment-preview") || editor.querySelector("strong")?.textContent !== "bold"
                       || editor.querySelector("em")?.textContent !== "italic"
@@ -188,9 +188,8 @@ function createWindow() {
                       throw new Error("Formatted comment was not preserved after rerender");
                     }
                     const setStatus = (value) => {
-                      const status = document.querySelector("#task-status");
-                      status.value = value;
-                      status.dispatchEvent(new Event("change", { bubbles: true }));
+                      document.querySelector("#task-list .selected").dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
+                      document.querySelector('[data-task-status="' + value + '"]').click();
                     };
                     setStatus("in_progress");
                     if (document.querySelector("#current-work")

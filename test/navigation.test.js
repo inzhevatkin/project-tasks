@@ -18,3 +18,12 @@ test("Journal precedes Statistics and uses the new name throughout the interface
   }
   setLocale("ru");
 });
+
+test("task status controls are only in the task context menu", () => {
+  const html = readFileSync(new URL("../src/index.html", import.meta.url), "utf8");
+  assert.doesNotMatch(html, /id="task-status"|for="task-status"/);
+  const group = html.match(/<div id="context-task-statuses"[^>]*>([\s\S]*?)<\/div>/)?.[1];
+  assert.ok(group);
+  assert.deepEqual([...group.matchAll(/data-task-status="([^"]+)"/g)].map((match) => match[1]), ["pending", "in_progress", "completed"]);
+  assert.equal([...group.matchAll(/role="menuitemradio"/g)].length, 3);
+});

@@ -19,7 +19,7 @@ export function createWorkspaceController(elements) {
   const journalListeners = new Set();
   const notifyJournal = () => journalListeners.forEach((listener) => listener());
   const statusLabels = { pending: "К выполнению", in_progress: "В работе", completed: "Выполнена" };
-  const contextMenu = createItemContextMenu(elements.itemContextMenu, elements.contextDelete);
+  const contextMenu = createItemContextMenu(elements.itemContextMenu, elements.contextDelete, elements.contextTaskStatuses);
 
   function renderTypes() {
     elements.typeList.replaceChildren(...state.projectTypes.map((type) => {
@@ -62,6 +62,7 @@ export function createWorkspaceController(elements) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = `list-item task-item${status === "completed" ? " completed" : ""}${status === "in_progress" ? " in-progress" : ""}${task.id === state.selectedTaskId ? " selected" : ""}`;
+      button.dataset.status = status;
       button.dataset.id = task.id;
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", String(task.id === state.selectedTaskId));
@@ -84,7 +85,6 @@ export function createWorkspaceController(elements) {
     if (!task) return;
     if (document.activeElement !== elements.taskTitle) elements.taskTitle.value = task.title;
     renderCommentEditor(elements.taskComment, task.comment);
-    elements.taskStatus.value = taskStatus(task);
   }
 
   function render() {
@@ -290,25 +290,30 @@ export function createWorkspaceController(elements) {
     scheduleSave();
   }
 
-  function bindContextMenu(list, selector, findItem, onDelete) {
+  function bindContextMenu(list, selector, findItem, getActions) {
     const show = (event) => {
       const item = event.target.closest(selector);
       const target = item && list.contains(item) ? findItem(item) : null;
       state.lastListClick = null;
-      if (target) contextMenu.open(event, item, () => onDelete(target));
+      if (target) contextMenu.open(event, item, getActions(target));
     };
     list.addEventListener("contextmenu", show);
     list.addEventListener("keydown", (event) => {
       if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) show(event);
     });
   }
-  bindContextMenu(elements.typeList, "[data-type-id]", (item) => state.projectTypes.find((type) => type.id === item.dataset.typeId), deleteType);
-  bindContextMenu(elements.projectList, "[data-id]", (item) => state.projects.find((project) => project.id === item.dataset.id), deleteProject);
+  bindContextMenu(elements.typeList, "[data-type-id]", (item) => state.projectTypes.find((type) => type.id === item.dataset.typeId),
+    (type) => ({ onDelete: () => deleteType(type) }));
+  bindContextMenu(elements.projectList, "[data-id]", (item) => state.projects.find((project) => project.id === item.dataset.id),
+    (project) => ({ onDelete: () => deleteProject(project) }));
   bindContextMenu(elements.taskList, "[data-id]", (item) => {
     const project = selectedProject();
     const task = project?.tasks.find((candidate) => candidate.id === item.dataset.id);
     return task ? { project, task } : null;
-  }, ({ project, task }) => deleteTask(project, task));
+  }, ({ project, task }) => ({
+    onDelete: () => deleteTask(project, task), status: taskStatus(task),
+    onStatus: (status) => setTaskStatus(project, task, status)
+  }));
 
   elements.taskForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -352,14 +357,12 @@ export function createWorkspaceController(elements) {
     scheduleSave();
   });
 
-  elements.taskStatus.addEventListener("change", () => {
-    const task = selectedTask();
-    const project = selectedProject();
-    if (!task || !changeTaskStatus(state, project, task, elements.taskStatus.value)) return;
+  function setTaskStatus(project, task, status) {
+    if (!state.projects.includes(project) || !changeTaskStatus(state, project, task, status)) return;
     renderTasks();
     notifyJournal();
     scheduleSave();
-  });
+  }
 
   function saveComment() {
     const task = selectedTask();

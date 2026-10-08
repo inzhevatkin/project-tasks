@@ -10,7 +10,7 @@ TiM is a desktop app for organizing personal projects and tasks. It is built wit
 - Right-click a section, project or task (or press Shift+F10) and choose Delete, then confirm. Deleting a section removes its projects and tasks but keeps the journal history.
 - The Update button appears only when an update is available; it remains visible during the update process or for a retry.
 - Keep tasks and optional comments inside each project; edit bold, italic, and circle or square bullet lists directly in the comment field. Rename groups, projects, and tasks by double-clicking.
-- Set a task to To do, In progress or Completed. The current working task is marked in the task list; starting another task stops work on the previous one.
+- Right-click a task to set it to To do, In progress or Completed; a check mark indicates its current status. The current working task is marked in the task list; starting another task stops work on the previous one.
 - Browse a journal of task creation, work starts/stops, completion, reopening and deletion, with dates and times. Search by task, project or section and combine date filters with section, project and task selectors, including deleted items. The selected section narrows projects and tasks; the selected project narrows tasks. Entries survive deletion of sections, projects and tasks.
 - Save changes automatically to a local JSON file and save pending changes before closing.
 - Use a classic Pomodoro timer: 25 minutes of focus, a 5-minute short break, and a 15-minute long break after four focus sessions.

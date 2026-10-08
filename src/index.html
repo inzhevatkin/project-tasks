@@ -74,12 +74,6 @@
         <div id="details" class="details" hidden>
           <label for="task-title">Название</label>
           <input id="task-title" class="large-input" autocomplete="off" />
-          <label for="task-status">Состояние</label>
-          <select id="task-status">
-            <option value="pending">К выполнению</option>
-            <option value="in_progress">В работе</option>
-            <option value="completed">Выполнена</option>
-          </select>
           <label for="task-comment">Комментарий</label>
           <div id="comment-toolbar" class="comment-toolbar" role="toolbar" aria-label="Форматирование комментария">
             <button type="button" data-comment-format="bold" aria-label="Жирный текст" title="Жирный текст (Ctrl+B)"><strong>B</strong></button>
@@ -183,6 +177,11 @@
     </main>
 
     <div id="item-context-menu" class="item-context-menu" role="menu" aria-label="Действия с элементом" hidden>
+      <div id="context-task-statuses" class="context-task-statuses" role="group" aria-label="Состояние" hidden>
+        <button class="context-action" type="button" role="menuitemradio" aria-checked="false" data-task-status="pending">К выполнению</button>
+        <button class="context-action" type="button" role="menuitemradio" aria-checked="false" data-task-status="in_progress">В работе</button>
+        <button class="context-action" type="button" role="menuitemradio" aria-checked="false" data-task-status="completed">Выполнена</button>
+      </div>
       <button id="context-delete" class="context-delete" type="button" role="menuitem">Удалить</button>
     </div>
     <dialog id="confirm-dialog">
