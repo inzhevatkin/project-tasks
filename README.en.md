@@ -9,7 +9,7 @@ TiM is a desktop app for organizing personal projects and tasks. It is built wit
 - Create and delete projects, group them by type, and switch between groups.
 - Keep tasks and optional comments inside each project; edit bold, italic, and circle or square bullet lists directly in the comment field. Rename groups, projects, and tasks by double-clicking.
 - Set a task to To do, In progress or Completed. The current working task is marked in the task list; starting another task stops work on the previous one.
-- Browse a diary of task creation, work starts/stops, completion, reopening and deletion, with dates and times. Search by task, project or section and combine date filters with section, project and task selectors, including deleted items. The selected section narrows projects and tasks; the selected project narrows tasks. Entries survive deletion of sections, projects and tasks.
+- Browse a journal of task creation, work starts/stops, completion, reopening and deletion, with dates and times. Search by task, project or section and combine date filters with section, project and task selectors, including deleted items. The selected section narrows projects and tasks; the selected project narrows tasks. Entries survive deletion of sections, projects and tasks.
 - Save changes automatically to a local JSON file and save pending changes before closing.
 - Use a classic Pomodoro timer: 25 minutes of focus, a 5-minute short break, and a 15-minute long break after four focus sessions.
 - Start breaks automatically, hear distinct bell-like sounds at the end of focus and breaks, and see timer progress on the Windows taskbar icon or macOS Dock icon.
@@ -34,9 +34,9 @@ Updates are not available when running from source. To build a Windows installer
 
 ## Data and privacy
 
-Projects, tasks, calendar events, and the diary are stored locally in `%APPDATA%\project-tasks\projects.json`. Pomodoro history and the daily-agenda display state are stored in Electron's local storage under the same data directory. Updates retain this directory. The daily agenda appears only while the app is running; the closed app does not send reminders.
+Projects, tasks, calendar events, and the journal are stored locally in `%APPDATA%\project-tasks\projects.json`. Pomodoro history and the daily-agenda display state are stored in Electron's local storage under the same data directory. Updates retain this directory. The daily agenda appears only while the app is running; the closed app does not send reminders.
 
-Mark a task In progress to record what you are working on. Selecting To do stops work, while Completed records its completion. Selecting a task alone does not change its status. In progress persists between launches until you stop or complete the task; it identifies your current task rather than measuring working hours. Diary entries retain names as they were at the time of each event. For older tasks, only known creation dates are recovered; earlier completion dates were not stored and are not inferred.
+Mark a task In progress to record what you are working on. Selecting To do stops work, while Completed records its completion. Selecting a task alone does not change its status. In progress persists between launches until you stop or complete the task; it identifies your current task rather than measuring working hours. Journal entries retain names as they were at the time of each event. For older tasks, only known creation dates are recovered; earlier completion dates were not stored and are not inferred.
 
 ## Development
 

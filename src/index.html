@@ -27,8 +27,8 @@
     <nav class="view-tabs" aria-label="Разделы приложения">
       <button id="show-tasks" class="view-tab selected" type="button">Задачи</button>
       <button id="show-calendar" class="view-tab" type="button">Календарь</button>
+      <button id="show-journal" class="view-tab" type="button">Журнал</button>
       <button id="show-statistics" class="view-tab" type="button">Статистика</button>
-      <button id="show-journal" class="view-tab" type="button">Дневник</button>
       <div class="app-meta">
         <span id="update-status" class="update-status" role="status"></span>
         <button id="update-button" class="update-button" type="button" disabled title="Обновлений пока нет">Обновить</button>
@@ -164,12 +164,12 @@
 
     <main id="journal-page" class="journal-page" hidden>
       <header class="journal-header">
-        <div><p class="eyebrow">ИСТОРИЯ ЗАДАЧ</p><h2>Дневник</h2></div>
+        <div><p class="eyebrow">ИСТОРИЯ ЗАДАЧ</p><h2>Журнал</h2></div>
         <p id="journal-save-status" class="save-status" role="status"></p>
       </header>
       <p id="journal-since" class="journal-hint"></p>
       <p class="journal-hint">Для старых задач восстановлены только известные даты создания. Даты прежних завершений не сохранялись.</p>
-      <form id="journal-filters" class="journal-filters" role="search" aria-label="Поиск в дневнике">
+      <form id="journal-filters" class="journal-filters" role="search" aria-label="Поиск в журнале">
         <div class="journal-type-filter"><label for="journal-type">Раздел</label><select id="journal-type"><option value="">Все разделы</option></select></div>
         <div class="journal-project-filter"><label for="journal-project">Проект</label><select id="journal-project"><option value="">Все проекты</option></select></div>
         <div class="journal-task-filter"><label for="journal-task">Задача</label><select id="journal-task"><option value="">Все задачи</option></select></div>

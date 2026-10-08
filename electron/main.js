@@ -84,6 +84,7 @@ function createWindow() {
       ? process.env.PROJECT_TASKS_SMOKE_LOCALE : "ru";
     const versionLabel = { ru: "Версия", en: "Version", zh: "版本" }[smokeLocale];
     const tasksLabel = { ru: "Задачи", en: "Tasks", zh: "任务" }[smokeLocale];
+    const journalLabel = { ru: "Журнал", en: "Journal", zh: "工作日志" }[smokeLocale];
     window.webContents.once("did-finish-load", async () => {
       try {
         await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
@@ -95,6 +96,12 @@ function createWindow() {
                 return reject(new Error("Daily agenda was not shown on startup"));
               }
               document.querySelector("#daily-agenda-dialog").close();
+              const tabOrder = [...document.querySelectorAll(".view-tabs > .view-tab")].map((tab) => tab.id).join(",");
+              if (tabOrder !== "show-tasks,show-calendar,show-journal,show-statistics"
+                || document.querySelector("#show-journal").textContent !== "${journalLabel}"
+                || document.querySelector("#journal-page h2").textContent !== "${journalLabel}") {
+                return reject(new Error("Journal naming or tab order failed"));
+              }
               if (!document.querySelector("#project-list").textContent.includes("Проверочный проект")) {
                 return reject(new Error("Existing project disappeared during calendar migration"));
               }
