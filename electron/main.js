@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createWorkspaceStore } from "./workspace-store.js";
 import { initializeUpdates } from "./update-controller.js";
 import { initializeNativeTheme } from "./theme-controller.js";
+import { runContextMenuSmoke } from "./context-menu-smoke.js";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -87,6 +88,11 @@ function createWindow() {
     const journalLabel = { ru: "Журнал", en: "Journal", zh: "工作日志" }[smokeLocale];
     window.webContents.once("did-finish-load", async () => {
       try {
+        if (process.env.PROJECT_TASKS_SMOKE_CONTEXT_MENU === "1") {
+          await runContextMenuSmoke(window, app);
+          app.quit();
+          return;
+        }
         await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
           const deadline = Date.now() + 5000;
           const check = () => {

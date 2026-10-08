@@ -31,12 +31,14 @@ export function normalizeWorkspace(value) {
   const rawProjects = isLegacy ? value : value?.projects;
   const rawTypes = isLegacy ? [] : value?.projectTypes;
   const projectTypes = normalizeTypes(rawTypes);
-  if (projectTypes.length === 0) {
+  const explicitlyEmpty = value?.version === 4 && Array.isArray(rawTypes) && rawTypes.length === 0
+    && Array.isArray(rawProjects) && rawProjects.length === 0;
+  if (projectTypes.length === 0 && !explicitlyEmpty) {
     projectTypes.push({ id: DEFAULT_PROJECT_TYPE_ID, name: "Работа" });
   }
 
   const validTypeIds = new Set(projectTypes.map((type) => type.id));
-  const fallbackTypeId = projectTypes[0].id;
+  const fallbackTypeId = projectTypes[0]?.id ?? DEFAULT_PROJECT_TYPE_ID;
   const projects = (Array.isArray(rawProjects) ? rawProjects : []).filter(isObject).map((project) => ({
     id: textOr(project.id, crypto.randomUUID()),
     name: textOr(project.name, "Без названия"),

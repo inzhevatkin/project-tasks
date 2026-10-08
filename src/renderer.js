@@ -6,6 +6,7 @@ import { createCalendarController } from "./calendar-controller.js";
 import { createJournalController } from "./journal-controller.js";
 import { localizeDocument, setLocale, t } from "./i18n.js";
 import { runUpdate } from "./update-flow.js";
+import { renderUpdateView } from "./ui/update-view.js";
 
 const workspace = createWorkspaceController(elements);
 const timer = createPomodoroController(elements);
@@ -20,22 +21,7 @@ let updateInProgress = false;
 let lastUpdateState = { status: "unavailable" };
 function renderUpdateState(state) {
   lastUpdateState = state;
-  const messages = {
-    unavailable: t("Обновления доступны в установленной версии Windows"),
-    checking: t("Проверка обновлений…"),
-    current: t("Установлена последняя версия"),
-    available: t("Доступна версия {version}", { version: state.version }),
-    downloading: t("Загрузка: {progress} %", { progress: state.progress }),
-    ready: t("Версия {version} готова к установке", { version: state.version }),
-    installing: t("Установка обновления…"),
-    error: t("Ошибка обновления: {error}", { error: state.error ?? state.message })
-  };
-  elements.updateStatus.textContent = messages[state.status] ?? state.message;
-  elements.updateStatus.title = elements.updateStatus.textContent;
-  elements.updateButton.disabled = updateInProgress || !(state.status === "available" || state.status === "ready" || (state.status === "error" && state.canRetry));
-  elements.updateButton.textContent = t("Обновить");
-  elements.updateButton.title = elements.updateButton.disabled
-    ? elements.updateStatus.textContent : t("Скачать, установить и перезапустить приложение");
+  renderUpdateView(elements, state, updateInProgress);
 }
 elements.updateButton.addEventListener("click", async () => {
   if (updateInProgress) return;
@@ -55,6 +41,7 @@ elements.updateButton.addEventListener("click", async () => {
     updateInProgress = false;
     renderUpdateState(lastUpdateState);
     if (failure) {
+      elements.updateStatus.hidden = false;
       elements.updateStatus.textContent = failure;
       elements.updateStatus.title = failure;
     }

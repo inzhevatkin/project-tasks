@@ -30,8 +30,8 @@
       <button id="show-journal" class="view-tab" type="button">Журнал</button>
       <button id="show-statistics" class="view-tab" type="button">Статистика</button>
       <div class="app-meta">
-        <span id="update-status" class="update-status" role="status"></span>
-        <button id="update-button" class="update-button" type="button" disabled title="Обновлений пока нет">Обновить</button>
+        <span id="update-status" class="update-status" role="status" hidden></span>
+        <button id="update-button" class="update-button" type="button" hidden disabled title="Обновлений пока нет">Обновить</button>
         <button id="show-about" class="about-button" type="button">О программе</button>
       </div>
     </nav>
@@ -56,7 +56,6 @@
         </form>
         <div id="project-list" class="list project-list" role="listbox" aria-label="Проекты"></div>
         <div class="project-empty">В этом разделе пока нет проектов</div>
-        <button id="delete-project" class="danger" type="button">Удалить проект</button>
       </section>
 
       <section class="panel">
@@ -90,7 +89,6 @@
           </div>
           <div id="task-comment" class="comment-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Комментарий к задаче" spellcheck="true"></div>
           <p id="save-status" class="save-status">Изменения сохраняются автоматически</p>
-          <button id="delete-task" class="danger" type="button">Удалить задачу</button>
         </div>
       </section>
     </main>
@@ -184,6 +182,9 @@
       <button id="journal-more" class="secondary" type="button" hidden>Показать ещё</button>
     </main>
 
+    <div id="item-context-menu" class="item-context-menu" role="menu" aria-label="Действия с элементом" hidden>
+      <button id="context-delete" class="context-delete" type="button" role="menuitem">Удалить</button>
+    </div>
     <dialog id="confirm-dialog">
       <form method="dialog">
         <h3 id="confirm-title">Подтвердите удаление</h3>

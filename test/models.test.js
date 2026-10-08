@@ -48,3 +48,12 @@ test("проверяет новое название при переименов
   assert.equal(itemName("   "), null);
   assert.equal(itemName(null), null);
 });
+
+test("deleting the last section stays empty after reload without losing history", () => {
+  const workspace = normalizeWorkspace({ version: 4, projectTypes: [], projects: [], taskJournal: [] });
+  assert.deepEqual(workspace.projectTypes, []);
+  assert.deepEqual(normalizeWorkspace(JSON.parse(JSON.stringify(workspace))), workspace);
+  const repaired = normalizeWorkspace({ version: 4, projectTypes: [], projects: [{ name: "Проект", tasks: [] }] });
+  assert.equal(repaired.projectTypes[0].id, "work");
+  assert.equal(repaired.projects[0].typeId, "work");
+});

@@ -3,6 +3,7 @@ import { textSpan } from "./ui/dom.js";
 import { t } from "./i18n.js";
 import { applyCommentCommand, renderCommentEditor, serializeCommentEditor } from "./comment-format.js";
 import { changeTaskStatus, recordTaskDeletion, recordTaskEvent, taskStatus } from "./task-journal.js";
+import { createItemContextMenu } from "./ui/item-context-menu.js";
 
 export function createWorkspaceController(elements) {
   const state = {
@@ -18,6 +19,7 @@ export function createWorkspaceController(elements) {
   const journalListeners = new Set();
   const notifyJournal = () => journalListeners.forEach((listener) => listener());
   const statusLabels = { pending: "К выполнению", in_progress: "В работе", completed: "Выполнена" };
+  const contextMenu = createItemContextMenu(elements.itemContextMenu, elements.contextDelete);
 
   function renderTypes() {
     elements.typeList.replaceChildren(...state.projectTypes.map((type) => {
@@ -48,7 +50,6 @@ export function createWorkspaceController(elements) {
       button.append(textSpan(displayName(project.name), "item-title"), textSpan(t("{count} задач", { count: project.tasks.length }), "item-meta"));
       return button;
     }));
-    elements.deleteProject.disabled = !selectedProject();
   }
 
   function renderTasks() {
@@ -87,6 +88,7 @@ export function createWorkspaceController(elements) {
   }
 
   function render() {
+    contextMenu.close();
     renderTypes();
     renderProjects();
     renderTasks();
@@ -165,6 +167,7 @@ export function createWorkspaceController(elements) {
   }
 
   function askToDelete(title, message) {
+    elements.confirmDialog.returnValue = "";
     elements.confirmTitle.textContent = title;
     elements.confirmMessage.textContent = message;
     elements.confirmDialog.showModal();
@@ -254,20 +257,58 @@ export function createWorkspaceController(elements) {
     scheduleSave();
   });
 
-  elements.deleteProject.addEventListener("click", async () => {
-    const project = selectedProject();
+  async function deleteProject(project) {
     if (!project || !await askToDelete(t("Удалить проект?"), t("Проект «{name}» и все его задачи будут удалены.", { name: project.name }))) return;
     const visibleIndex = projectsForSelectedType().indexOf(project);
     const deletedAt = new Date().toISOString();
+    if (!state.projects.includes(project)) return;
     for (const task of project.tasks) recordTaskDeletion(state, project, task, deletedAt);
     state.projects.splice(state.projects.indexOf(project), 1);
     const remaining = projectsForSelectedType();
-    state.selectedProjectId = remaining[Math.min(visibleIndex, remaining.length - 1)]?.id ?? null;
-    state.selectedTaskId = selectedProject()?.tasks[0]?.id ?? null;
+    if (state.selectedProjectId === project.id) {
+      state.selectedProjectId = remaining[Math.min(visibleIndex, remaining.length - 1)]?.id ?? null;
+      state.selectedTaskId = selectedProject()?.tasks[0]?.id ?? null;
+    }
     render();
     notifyJournal();
     scheduleSave();
-  });
+  }
+
+  async function deleteType(type) {
+    if (!await askToDelete(t("Удалить раздел?"), t("Раздел «{name}», все его проекты и задачи будут удалены.", { name: displayTypeName(type) }))) return;
+    const index = state.projectTypes.indexOf(type);
+    if (index < 0) return;
+    const deletedAt = new Date().toISOString();
+    for (const project of state.projects.filter((item) => item.typeId === type.id)) {
+      for (const task of project.tasks) recordTaskDeletion(state, project, task, deletedAt);
+    }
+    state.projects = state.projects.filter((project) => project.typeId !== type.id);
+    state.projectTypes.splice(index, 1);
+    if (state.selectedTypeId === type.id) selectType(state.projectTypes[Math.min(index, state.projectTypes.length - 1)]?.id ?? null);
+    else render();
+    notifyJournal();
+    scheduleSave();
+  }
+
+  function bindContextMenu(list, selector, findItem, onDelete) {
+    const show = (event) => {
+      const item = event.target.closest(selector);
+      const target = item && list.contains(item) ? findItem(item) : null;
+      state.lastListClick = null;
+      if (target) contextMenu.open(event, item, () => onDelete(target));
+    };
+    list.addEventListener("contextmenu", show);
+    list.addEventListener("keydown", (event) => {
+      if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) show(event);
+    });
+  }
+  bindContextMenu(elements.typeList, "[data-type-id]", (item) => state.projectTypes.find((type) => type.id === item.dataset.typeId), deleteType);
+  bindContextMenu(elements.projectList, "[data-id]", (item) => state.projects.find((project) => project.id === item.dataset.id), deleteProject);
+  bindContextMenu(elements.taskList, "[data-id]", (item) => {
+    const project = selectedProject();
+    const task = project?.tasks.find((candidate) => candidate.id === item.dataset.id);
+    return task ? { project, task } : null;
+  }, ({ project, task }) => deleteTask(project, task));
 
   elements.taskForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -354,18 +395,19 @@ export function createWorkspaceController(elements) {
   elements.taskComment.addEventListener("drop", (event) => event.preventDefault());
   elements.taskComment.addEventListener("input", saveComment);
 
-  elements.deleteTask.addEventListener("click", async () => {
-    const project = selectedProject();
-    const task = selectedTask();
+  async function deleteTask(project, task) {
     if (!project || !task || !await askToDelete(t("Удалить задачу?"), t("Задача «{name}» будет удалена.", { name: task.title }))) return;
     const index = project.tasks.indexOf(task);
+    if (index < 0 || !state.projects.includes(project)) return;
     recordTaskDeletion(state, project, task);
     project.tasks.splice(index, 1);
-    state.selectedTaskId = project.tasks[Math.min(index, project.tasks.length - 1)]?.id ?? null;
+    if (state.selectedTaskId === task.id && state.selectedProjectId === project.id) {
+      state.selectedTaskId = project.tasks[Math.min(index, project.tasks.length - 1)]?.id ?? null;
+    }
     render();
     notifyJournal();
     scheduleSave();
-  });
+  }
 
 
   async function initialize() {

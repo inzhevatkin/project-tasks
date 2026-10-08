@@ -7,6 +7,8 @@ TiM is a desktop app for organizing personal projects and tasks. It is built wit
 ## Features
 
 - Create and delete projects, group them by type, and switch between groups.
+- Right-click a section, project or task (or press Shift+F10) and choose Delete, then confirm. Deleting a section removes its projects and tasks but keeps the journal history.
+- The Update button appears only when an update is available; it remains visible during the update process or for a retry.
 - Keep tasks and optional comments inside each project; edit bold, italic, and circle or square bullet lists directly in the comment field. Rename groups, projects, and tasks by double-clicking.
 - Set a task to To do, In progress or Completed. The current working task is marked in the task list; starting another task stops work on the previous one.
 - Browse a journal of task creation, work starts/stops, completion, reopening and deletion, with dates and times. Search by task, project or section and combine date filters with section, project and task selectors, including deleted items. The selected section narrows projects and tasks; the selected project narrows tasks. Entries survive deletion of sections, projects and tasks.
