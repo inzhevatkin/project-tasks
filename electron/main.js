@@ -8,11 +8,13 @@ import { runContextMenuSmoke } from "./context-menu-smoke.js";
 import { applicationMenu } from "./application-menu.js";
 import { createLanguageSettings } from "./language-settings.js";
 import { runLanguageSmoke } from "./language-smoke.js";
+import { acquireSingleInstance, focusWindow } from "./single-instance.js";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
 const isSmokeTest = process.env.PROJECT_TASKS_SMOKE_TEST === "1";
+let mainWindow = null;
 let quitting = false;
 app.on("before-quit", () => { quitting = true; });
 if (isSmokeTest) {
@@ -53,6 +55,7 @@ function createWindow() {
       contextIsolation: true, nodeIntegration: false, sandbox: true
     }
   });
+  mainWindow = window;
   window.loadFile(join(currentDirectory, "../src/index.html"));
   let closeReady = false;
   let closePending = false;
@@ -80,6 +83,7 @@ function createWindow() {
   window.webContents.on("render-process-gone", () => { closeReady = false; });
   window.webContents.on("did-start-loading", () => { closeReady = false; });
   window.on("closed", () => {
+    if (mainWindow === window) mainWindow = null;
     ipcMain.removeListener("app:renderer-ready", rendererReady);
     ipcMain.removeListener("app:close-result", finishClose);
   });
@@ -342,9 +346,15 @@ function createWindow() {
       }
     });
   }
+  return window;
 }
 
-app.whenReady().then(() => {
+function activateMainWindow() {
+  focusWindow(mainWindow ?? createWindow());
+}
+
+async function startApplication() {
+  await app.whenReady();
   let locale = isSmokeTest && ["ru", "en", "zh"].includes(process.env.PROJECT_TASKS_SMOKE_LOCALE)
     ? process.env.PROJECT_TASKS_SMOKE_LOCALE : "ru";
   if (!isSmokeTest) {
@@ -383,11 +393,12 @@ app.whenReady().then(() => {
   ipcMain.handle("projects:load", () => store.load());
   ipcMain.handle("projects:save", (_event, workspace) => store.save(workspace));
   createWindow();
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
+  app.on("activate", activateMainWindow);
+}
 
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
-});
+if (acquireSingleInstance({ app, activate: activateMainWindow })) {
+  startApplication();
+  app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") app.quit();
+  });
+}
