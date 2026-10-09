@@ -1,4 +1,11 @@
 export const elements = {
+  showSettings: document.querySelector("#show-settings"),
+  settingsDialog: document.querySelector("#settings-dialog"),
+  settingsForm: document.querySelector("#settings-form"),
+  appLanguage: document.querySelector("#app-language"),
+  settingsSave: document.querySelector("#settings-save"),
+  settingsCancel: document.querySelector("#settings-cancel"),
+  settingsError: document.querySelector("#settings-error"),
   typeForm: document.querySelector("#type-form"),
   typeInput: document.querySelector("#type-input"),
   typeList: document.querySelector("#type-list"),

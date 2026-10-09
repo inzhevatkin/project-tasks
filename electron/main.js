@@ -1,10 +1,13 @@
-import { app, BrowserWindow, ipcMain, nativeTheme } from "electron";
+import { app, BrowserWindow, ipcMain, nativeTheme, Menu } from "electron";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createWorkspaceStore } from "./workspace-store.js";
 import { initializeUpdates } from "./update-controller.js";
 import { initializeNativeTheme } from "./theme-controller.js";
 import { runContextMenuSmoke } from "./context-menu-smoke.js";
+import { applicationMenu } from "./application-menu.js";
+import { createLanguageSettings } from "./language-settings.js";
+import { runLanguageSmoke } from "./language-smoke.js";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -88,6 +91,11 @@ function createWindow() {
     const journalLabel = { ru: "Журнал", en: "Journal", zh: "工作日志" }[smokeLocale];
     window.webContents.once("did-finish-load", async () => {
       try {
+        if (process.env.PROJECT_TASKS_SMOKE_LANGUAGE === "1") {
+          await runLanguageSmoke(window, app);
+          app.quit();
+          return;
+        }
         if (process.env.PROJECT_TASKS_SMOKE_CONTEXT_MENU === "1") {
           await runContextMenuSmoke(window, app);
           app.quit();
@@ -340,14 +348,21 @@ app.whenReady().then(() => {
   let locale = isSmokeTest && ["ru", "en", "zh"].includes(process.env.PROJECT_TASKS_SMOKE_LOCALE)
     ? process.env.PROJECT_TASKS_SMOKE_LOCALE : "ru";
   if (!isSmokeTest) {
-    try {
-      const saved = readFileSync(join(app.getPath("userData"), "installer-language.txt"), "utf8").trim();
-      locale = ["ru", "en", "zh"].includes(saved) ? saved : "ru";
-    } catch {
-      const systemLocale = app.getLocale().toLowerCase();
-      locale = systemLocale.startsWith("zh") ? "zh" : systemLocale.startsWith("en") ? "en" : "ru";
-    }
+    const systemLocale = app.getLocale().toLowerCase();
+    locale = systemLocale.startsWith("zh") ? "zh" : systemLocale.startsWith("en") ? "en" : "ru";
   }
+  const languages = createLanguageSettings(join(app.getPath("userData"), "installer-language.txt"), locale);
+  const installMenu = () => Menu.setApplicationMenu(Menu.buildFromTemplate(applicationMenu(languages.get(), {
+    showSettings: () => BrowserWindow.getFocusedWindow()?.webContents.send("app:settings"),
+    showAbout: () => BrowserWindow.getFocusedWindow()?.webContents.send("app:about")
+  })));
+  installMenu();
+  ipcMain.handle("app:language", async (event, value) => {
+    if (!BrowserWindow.fromWebContents(event.sender)) throw new Error("Invalid application language request");
+    const result = await languages.set(value);
+    installMenu();
+    return result;
+  });
   initializeUpdates();
   initializeNativeTheme({ ipcMain, nativeTheme, BrowserWindow });
   const store = createWorkspaceStore(join(app.getPath("userData"), "projects.json"));
@@ -363,7 +378,7 @@ app.whenReady().then(() => {
   });
   ipcMain.handle("app:info", () => ({
     description: "Кроссплатформенный менеджер проектов и задач",
-    version: app.getVersion(), locale
+    version: app.getVersion(), locale: languages.get()
   }));
   ipcMain.handle("projects:load", () => store.load());
   ipcMain.handle("projects:save", (_event, workspace) => store.save(workspace));

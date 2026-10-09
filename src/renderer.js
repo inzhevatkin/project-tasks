@@ -7,6 +7,7 @@ import { createJournalController } from "./journal-controller.js";
 import { localizeDocument, setLocale, t } from "./i18n.js";
 import { runUpdate } from "./update-flow.js";
 import { renderUpdateView } from "./ui/update-view.js";
+import { initializeSettings } from "./ui/settings.js";
 
 const workspace = createWorkspaceController(elements);
 const timer = createPomodoroController(elements);
@@ -73,6 +74,9 @@ try {
   await workspace.initialize();
   calendar.initialize();
   journal.initialize();
+  const settings = initializeSettings(elements, { saveWorkspace: workspace.flushSave, canChange: () => !updateInProgress });
+  window.projectTasks.onOpenSettings(settings.open);
+  window.projectTasks.onOpenAbout(() => { if (!elements.aboutDialog.open) elements.aboutDialog.showModal(); });
   window.projectTasks.onBeforeClose(async () => {
     try {
       await workspace.flushSave();

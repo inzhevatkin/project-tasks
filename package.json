@@ -1,7 +1,7 @@
 {
   "name": "project-tasks",
   "productName": "TiM",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "description": "Кроссплатформенный менеджер проектов и задач",
   "main": "electron/main.js",
   "scripts": {

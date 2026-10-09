@@ -21,6 +21,8 @@ TiM is a desktop app for organizing personal projects and tasks. It is built wit
 
 ## Install and run
 
+Change the app language under **Settings → Interface language → Apply**: Russian, English or Simplified Chinese. The native window menu is translated too. Applying the setting saves your edits and reloads the interface without resetting the running Pomodoro. Your own names and comments are not translated. The choice persists through launches and updates.
+
 Download the latest Windows installer from [GitHub Releases](https://github.com/inzhevatkin/project-tasks/releases/latest). Choose Russian, English, or Simplified Chinese during installation; the app uses the selected language and keeps it through automatic updates. Project names, task names, comments, and event titles you enter are not translated.
 
 The installed Windows app checks for updates at startup and every six hours. One click on Update downloads the new version, saves your latest changes, installs silently, and restarts the app. You can keep working during download; no second click is needed. If an error occurs, use the same button to retry. The installer is not yet signed with a trusted certificate, so Windows SmartScreen may display a warning.

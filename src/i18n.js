@@ -1,5 +1,11 @@
 // Russian source text is the translation key. User-created content is never translated.
 const translations = {
+  "Настройки": ["Settings", "设置"],
+  "Язык интерфейса": ["Interface language", "界面语言"],
+  "Применить": ["Apply", "应用"],
+  "После применения интерфейс перезагрузится. Данные и таймер сохранятся.": ["Applying changes reloads the interface. Your data and timer are preserved.", "应用更改后将重新加载界面，数据和计时器会保留。"],
+  "Не удалось изменить язык: {error}": ["Could not change language: {error}", "无法更改语言：{error}"],
+  "Дождитесь завершения обновления.": ["Wait for the update to finish.", "请等待更新完成。"],
   "Кроссплатформенный менеджер проектов и задач": ["Cross-platform project and task manager", "跨平台项目与任务管理工具"],
   "Таймер Pomodoro": ["Pomodoro timer", "番茄钟"],
   "Фокус": ["Focus", "专注"],
