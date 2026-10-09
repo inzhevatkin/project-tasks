@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createProject, createTask, normalizeWorkspace } from "../src/models.js";
-import { changeTaskStatus, filterTaskJournal, journalTypes, journalProjects, journalTasks, recordTaskDeletion, recordTaskEvent, workingTask } from "../src/task-journal.js";
+import { changeTaskStatus, filterTaskJournal, journalTypes, journalProjects, journalTasks, MAX_WORKING_TASKS, recordTaskDeletion, recordTaskEvent, workingTasks } from "../src/task-journal.js";
 import { localDateKey } from "../src/calendar.js";
 
 function fixture() {
@@ -14,7 +14,7 @@ function fixture() {
   return { workspace, project, first, second };
 }
 
-test("switching current work records both tasks; completing and reopening preserve dates", () => {
+test("parallel work preserves both tasks; completing and reopening preserve dates", () => {
   const { workspace, project, first, second } = fixture();
   const otherProject = createProject("Другой проект");
   project.tasks = [first];
@@ -24,23 +24,54 @@ test("switching current work records both tasks; completing and reopening preser
   assert.equal(changeTaskStatus(workspace, project, first, "in_progress", "2026-10-01T03:00:00.000Z"), true);
   assert.equal(changeTaskStatus(workspace, project, first, "in_progress", "2026-10-01T03:01:00.000Z"), false);
   changeTaskStatus(workspace, otherProject, second, "in_progress", "2026-10-01T04:00:00.000Z");
-  assert.equal(first.status, "pending");
-  assert.equal(first.workStartedAt, null);
-  assert.equal(workingTask(workspace).task.id, second.id);
+  assert.equal(first.status, "in_progress");
+  assert.equal(first.workStartedAt, "2026-10-01T03:00:00.000Z");
+  assert.deepEqual(workingTasks(workspace).map(({ task }) => task.id), [first.id, second.id]);
   changeTaskStatus(workspace, otherProject, second, "completed", "2026-10-01T05:00:00.000Z");
-  assert.equal(workingTask(workspace), null);
+  assert.deepEqual(workingTasks(workspace).map(({ task }) => task.id), [first.id]);
   assert.equal(second.completed, true);
   assert.equal(second.completedAt, "2026-10-01T05:00:00.000Z");
   changeTaskStatus(workspace, otherProject, second, "in_progress", "2026-10-02T03:00:00.000Z");
   assert.equal(second.completed, false);
   assert.equal(second.completedAt, null);
-  assert.deepEqual(workspace.taskJournal.map((entry) => entry.action), ["created", "started", "paused", "started", "completed", "reopened", "started"]);
-  assert.equal(workspace.taskJournal[2].taskId, first.id);
-  assert.equal(workspace.taskJournal[2].projectId, project.id);
-  assert.equal(workspace.taskJournal[3].projectId, otherProject.id);
-  assert.equal(workspace.taskJournal[3].at, workspace.taskJournal[2].at);
+  assert.deepEqual(workspace.taskJournal.map((entry) => entry.action), ["created", "started", "started", "completed", "reopened", "started"]);
+  assert.equal(workspace.taskJournal[2].taskId, second.id);
+  assert.equal(workspace.taskJournal[2].projectId, otherProject.id);
   const restored = normalizeWorkspace(JSON.parse(JSON.stringify(workspace)));
-  assert.equal(workingTask(restored).task.workStartedAt, "2026-10-02T03:00:00.000Z");
+  assert.deepEqual(workingTasks(restored).map(({ task }) => task.workStartedAt), ["2026-10-01T03:00:00.000Z", "2026-10-02T03:00:00.000Z"]);
+  assert.deepEqual(restored.taskJournal, workspace.taskJournal);
+});
+
+test("at most three tasks across all sections/projects; excess starts are atomic and freed slots can be reused", () => {
+  const { workspace, project, first, second } = fixture();
+  const other = createProject("Домашний проект", "home");
+  const third = createTask("Третья");
+  const fourth = createTask("Четвёртая");
+  fourth.status = "completed";
+  fourth.completed = true;
+  fourth.completedAt = "2026-10-01T01:00:00.000Z";
+  other.tasks.push(third, fourth);
+  workspace.projects.push(other);
+  assert.equal(MAX_WORKING_TASKS, 3);
+  for (const [owner, task] of [[project, first], [project, second], [other, third]]) {
+    assert.equal(changeTaskStatus(workspace, owner, task, "in_progress"), true);
+  }
+  const before = JSON.stringify(workspace);
+  assert.equal(changeTaskStatus(workspace, other, fourth, "in_progress"), false);
+  assert.equal(changeTaskStatus(workspace, project, first, "in_progress"), false);
+  assert.equal(JSON.stringify(workspace), before);
+  changeTaskStatus(workspace, project, first, "pending");
+  assert.equal(changeTaskStatus(workspace, other, fourth, "in_progress"), true);
+  assert.equal(workingTasks(workspace).length, 3);
+  assert.deepEqual(workspace.taskJournal.slice(-3).map((entry) => entry.action), ["paused", "reopened", "started"]);
+  recordTaskDeletion(workspace, other, third);
+  other.tasks.splice(other.tasks.indexOf(third), 1);
+  assert.equal(changeTaskStatus(workspace, project, first, "in_progress"), true);
+  changeTaskStatus(workspace, project, second, "completed");
+  assert.equal(workingTasks(workspace).length, 2);
+  assert.equal(changeTaskStatus(workspace, project, second, "in_progress"), true);
+  const restored = normalizeWorkspace(JSON.parse(JSON.stringify(workspace)));
+  assert.equal(workingTasks(restored).length, 3);
   assert.deepEqual(restored.taskJournal, workspace.taskJournal);
 });
 

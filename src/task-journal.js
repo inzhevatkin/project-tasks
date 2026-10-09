@@ -1,6 +1,7 @@
 import { localDateKey } from "./calendar.js";
 
 export const TASK_STATUSES = ["pending", "in_progress", "completed"];
+export const MAX_WORKING_TASKS = 3;
 export const JOURNAL_ACTIONS = ["created", "started", "paused", "completed", "reopened", "deleted"];
 
 export function taskStatus(task) {
@@ -24,29 +25,18 @@ export function recordTaskEvent(workspace, project, task, action, at = new Date(
   return entry;
 }
 
-export function workingTask(workspace) {
-  for (const project of workspace.projects) {
-    const task = project.tasks.find((item) => taskStatus(item) === "in_progress");
-    if (task) return { project, task };
-  }
-  return null;
+export function workingTasks(workspace) {
+  return workspace.projects.flatMap((project) => project.tasks
+    .filter((task) => taskStatus(task) === "in_progress").map((task) => ({ project, task })));
 }
 
-// One task can be marked as the current work. Merely selecting a task does not
-// change its state or create an entry in the diary.
+// Starting another task never stops existing work. Reject excess starts before
+// changing timestamps or recording journal entries.
 export function changeTaskStatus(workspace, project, task, status, at = new Date().toISOString()) {
-  if (!TASK_STATUSES.includes(status) || !project.tasks.includes(task)) return false;
+  if (!TASK_STATUSES.includes(status) || !workspace.projects.includes(project) || !project.tasks.includes(task)) return false;
   const previous = taskStatus(task);
   if (previous === status) return false;
-  if (status === "in_progress") {
-    for (const otherProject of workspace.projects) {
-      for (const otherTask of otherProject.tasks) {
-        if (otherTask !== task && taskStatus(otherTask) === "in_progress") {
-          changeTaskStatus(workspace, otherProject, otherTask, "pending", at);
-        }
-      }
-    }
-  }
+  if (status === "in_progress" && workingTasks(workspace).length >= MAX_WORKING_TASKS) return false;
   if (previous === "completed") recordTaskEvent(workspace, project, task, "reopened", at);
   if (status === "in_progress") recordTaskEvent(workspace, project, task, "started", at);
   else if (status === "completed") recordTaskEvent(workspace, project, task, "completed", at);

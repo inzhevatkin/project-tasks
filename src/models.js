@@ -26,6 +26,20 @@ export function itemName(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+// The stored array is the display order; task identity, dates and history stay intact.
+export function moveTask(project, taskId, targetId, placement = "before") {
+  if (!["before", "after"].includes(placement) || !Array.isArray(project?.tasks)) return false;
+  const from = project.tasks.findIndex((task) => task.id === taskId);
+  const target = project.tasks.findIndex((task) => task.id === targetId);
+  if (from < 0 || target < 0 || from === target) return false;
+  let destination = target + (placement === "after" ? 1 : 0);
+  if (from < destination) destination--;
+  if (destination === from) return false;
+  const [task] = project.tasks.splice(from, 1);
+  project.tasks.splice(destination, 0, task);
+  return true;
+}
+
 export function normalizeWorkspace(value) {
   const isLegacy = Array.isArray(value);
   const rawProjects = isLegacy ? value : value?.projects;

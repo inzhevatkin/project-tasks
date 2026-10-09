@@ -1,9 +1,10 @@
-import { createProject, createProjectType, createTask, itemName, normalizeWorkspace } from "./models.js";
+import { createProject, createProjectType, createTask, itemName, moveTask, normalizeWorkspace } from "./models.js";
 import { textSpan } from "./ui/dom.js";
 import { t } from "./i18n.js";
 import { applyCommentCommand, renderCommentEditor, serializeCommentEditor } from "./comment-format.js";
-import { changeTaskStatus, recordTaskDeletion, recordTaskEvent, taskStatus } from "./task-journal.js";
+import { changeTaskStatus, MAX_WORKING_TASKS, recordTaskDeletion, recordTaskEvent, taskStatus, workingTasks } from "./task-journal.js";
 import { createItemContextMenu } from "./ui/item-context-menu.js";
+import { bindTaskReorder } from "./ui/task-reorder.js";
 
 export function createWorkspaceController(elements) {
   const state = {
@@ -20,6 +21,15 @@ export function createWorkspaceController(elements) {
   const notifyJournal = () => journalListeners.forEach((listener) => listener());
   const statusLabels = { pending: "К выполнению", in_progress: "В работе", completed: "Выполнена" };
   const contextMenu = createItemContextMenu(elements.itemContextMenu, elements.contextDelete, elements.contextTaskStatuses);
+  const taskReorder = bindTaskReorder(elements.taskList, {
+    getProject: selectedProject,
+    onMove: (taskId, targetId, placement) => {
+      if (!moveTask(selectedProject(), taskId, targetId, placement)) return;
+      state.lastListClick = null;
+      renderTasks();
+      scheduleSave();
+    }
+  });
 
   function renderTypes() {
     elements.typeList.replaceChildren(...state.projectTypes.map((type) => {
@@ -64,10 +74,12 @@ export function createWorkspaceController(elements) {
       button.className = `list-item task-item${status === "completed" ? " completed" : ""}${status === "in_progress" ? " in-progress" : ""}${task.id === state.selectedTaskId ? " selected" : ""}`;
       button.dataset.status = status;
       button.dataset.id = task.id;
+      button.draggable = true;
+      button.setAttribute("aria-keyshortcuts", "Alt+ArrowUp Alt+ArrowDown");
       button.setAttribute("role", "option");
       button.setAttribute("aria-selected", String(task.id === state.selectedTaskId));
       button.setAttribute("aria-label", `${displayName(task.title)} · ${t(statusLabels[status])}`);
-      button.title = t("Дважды щёлкните, чтобы переименовать задачу");
+      button.title = t("Дважды щёлкните для переименования. Перетащите для изменения порядка или нажмите Alt+↑ / Alt+↓.");
       button.append(
         textSpan(status === "completed" ? "✓" : status === "in_progress" ? "▶" : "○", "task-state"),
         textSpan(displayName(task.title), "item-title"),
@@ -88,6 +100,7 @@ export function createWorkspaceController(elements) {
   }
 
   function render() {
+    taskReorder.clear();
     contextMenu.close();
     renderTypes();
     renderProjects();
@@ -331,6 +344,7 @@ export function createWorkspaceController(elements) {
   });
 
   elements.taskList.addEventListener("click", async (event) => {
+    if (taskReorder.isDragging() || taskReorder.suppressClick()) return;
     const item = event.target.closest("[data-id]");
     const task = selectedProject()?.tasks.find((candidate) => candidate.id === item?.dataset.id);
     if (!task) return;
@@ -347,6 +361,11 @@ export function createWorkspaceController(elements) {
     scheduleSave();
   });
 
+  elements.taskList.addEventListener("dragstart", () => {
+    state.lastListClick = null;
+    contextMenu.close();
+  });
+
   elements.taskTitle.addEventListener("input", () => {
     const task = selectedTask();
     if (!task) return;
@@ -358,6 +377,11 @@ export function createWorkspaceController(elements) {
   });
 
   function setTaskStatus(project, task, status) {
+    if (status === "in_progress" && taskStatus(task) !== status && workingTasks(state).length >= MAX_WORKING_TASKS) {
+      elements.taskLimitMessage.textContent = t("Одновременно в работе может быть не более {count} задач. Завершите одну из них или переведите её в «К выполнению».", { count: MAX_WORKING_TASKS });
+      elements.taskLimitDialog.showModal();
+      return;
+    }
     if (!state.projects.includes(project) || !changeTaskStatus(state, project, task, status)) return;
     renderTasks();
     notifyJournal();

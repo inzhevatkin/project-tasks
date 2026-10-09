@@ -18,6 +18,8 @@ export const elements = {
   taskInput: document.querySelector("#task-input"),
   addTask: document.querySelector("#add-task"),
   taskList: document.querySelector("#task-list"),
+  taskLimitDialog: document.querySelector("#task-limit-dialog"),
+  taskLimitMessage: document.querySelector("#task-limit-message"),
   details: document.querySelector("#details"),
   detailsEmpty: document.querySelector("#details-empty"),
   taskTitle: document.querySelector("#task-title"),

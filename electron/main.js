@@ -8,6 +8,7 @@ import { runContextMenuSmoke } from "./context-menu-smoke.js";
 import { applicationMenu } from "./application-menu.js";
 import { createLanguageSettings } from "./language-settings.js";
 import { runLanguageSmoke } from "./language-smoke.js";
+import { runTaskManagementSmoke } from "./task-management-smoke.js";
 import { acquireSingleInstance, focusWindow } from "./single-instance.js";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -56,6 +57,8 @@ function createWindow() {
     }
   });
   mainWindow = window;
+  // Automated dialog tests must also finish when another window covers TiM.
+  if (isSmokeTest) window.webContents.setBackgroundThrottling(false);
   window.loadFile(join(currentDirectory, "../src/index.html"));
   let closeReady = false;
   let closePending = false;
@@ -95,6 +98,11 @@ function createWindow() {
     const journalLabel = { ru: "Журнал", en: "Journal", zh: "工作日志" }[smokeLocale];
     window.webContents.once("did-finish-load", async () => {
       try {
+        if (process.env.PROJECT_TASKS_SMOKE_TASK_MANAGEMENT === "1") {
+          await runTaskManagementSmoke(window, app);
+          app.quit();
+          return;
+        }
         if (process.env.PROJECT_TASKS_SMOKE_LANGUAGE === "1") {
           await runLanguageSmoke(window, app);
           app.quit();
@@ -209,10 +217,12 @@ function createWindow() {
                     document.querySelector("#task-input").value = "Вторая задача дневника";
                     document.querySelector("#task-form").requestSubmit();
                     setStatus("in_progress");
-                    if (document.querySelectorAll("#task-list .in-progress").length !== 1
-                      || !document.querySelector("#task-list .in-progress").textContent.includes("Вторая задача дневника")) {
-                      throw new Error("Switching the working task failed");
+                    if (document.querySelectorAll("#task-list .in-progress").length !== 2) {
+                      throw new Error("Starting another task stopped existing work");
                     }
+                    document.querySelector('#task-list [data-id="smoke-task"]').click();
+                    setStatus("pending");
+                    [...document.querySelectorAll("#task-list .task-item")].find(item => item.textContent.includes("Вторая задача дневника")).click();
                     setStatus("completed");
                     if (document.querySelector("#task-list .in-progress")) throw new Error("Completed task stayed in progress");
                     setStatus("pending");

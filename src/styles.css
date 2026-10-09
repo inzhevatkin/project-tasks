@@ -110,6 +110,11 @@ button:disabled { cursor: default; opacity: .48; }
 .item-meta { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; font-weight: 400; }
 .task-item { display: grid; grid-template-columns: 28px minmax(0,1fr) auto; align-items: center; gap: 7px; background: var(--panel-bg); border-color: var(--soft-border); }
 .task-state { color: #4f46e5; font-size: 18px; text-align: center; }
+.task-item[draggable="true"] { position: relative; cursor: grab; }
+.task-item.dragging { opacity: .45; cursor: grabbing; }
+.task-item.drop-before::before, .task-item.drop-after::after { content: ""; position: absolute; left: 4px; right: 4px; height: 3px; border-radius: 2px; background: var(--selected-border); pointer-events: none; }
+.task-item.drop-before::before { top: 0; }
+.task-item.drop-after::after { bottom: 0; }
 .task-item.completed .item-title { color: #8a93a7; text-decoration: line-through; }
 .task-item.in-progress .task-state { color: #198754; }
 .task-status-badge { grid-column: 2 / -1; width: fit-content; padding: 3px 7px; color: #198754; background: color-mix(in srgb,#198754 12%,var(--panel-bg)); border-radius: 999px; font-size: 11px; }
